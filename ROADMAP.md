@@ -65,6 +65,10 @@ Ordered by user-visible value per unit of risk.
 - Client-side W3C Gamepad API polling, changed-snapshot forwarding over the encrypted control
   channel, and host-side virtual HID gamepad injection are implemented. The host toggle and the
   per-viewer gamepad switch are real and enforced.
+- The virtual pad now publishes an Xbox-style HID report (buttons first, hat, trigger axes, signed
+  16-bit sticks) instead of a generic 6-axis layout, so macOS/SDL/Steam label LB/RB, LS/RS,
+  Back/Start and Guide by their correct Xbox positions instead of shifting them. Report mapping
+  tests cover the exact labels from the friend-controller feedback.
 - **Platform gate / verification:** macOS requires the restricted
   `com.apple.developer.hid.virtual.device` entitlement to create a virtual HID device. The current
   ad-hoc-signed build has no entitlements, so the host cannot create the virtual pad and surfaces

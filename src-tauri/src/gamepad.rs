@@ -13,10 +13,11 @@ use serde::{Deserialize, Serialize};
 
 /// Number of analog axes carried on the wire.
 pub const MAX_AXES: usize = 8;
-/// Number of digital buttons carried on the wire.
-pub const MAX_BUTTONS: usize = 16;
-/// Report ID + 6 axes + hat/padding + 16 buttons.
-pub const REPORT_LEN: usize = 10;
+/// Number of digital buttons carried on the wire. W3C standard mapping has
+/// 17 (A/B/X/Y, shoulders, triggers, Back/Start, stick clicks, D-pad, Guide).
+pub const MAX_BUTTONS: usize = 17;
+/// Report ID + 2 button bytes + hat + 2 trigger bytes + four 16-bit stick axes.
+pub const REPORT_LEN: usize = 14;
 
 /// A normalized snapshot of one physical controller.
 ///
@@ -116,81 +117,118 @@ impl GamepadState {
         }
     }
 
+    /// Maps W3C standard button indices to the Xbox-style HID button field.
+    ///
+    /// Xbox/Microsoft HID layout is not the same as the W3C order:
+    /// bit 0..3 A/B/X/Y, bit 4/5 LB/RB, bit 6/7 Back/Start, bit 8/9 L3/R3,
+    /// bit 10 Guide. Triggers and the D-pad are separate fields (trigger
+    /// bytes and the hat switch), so they are deliberately not in this mask.
     fn button_bits(&self) -> u16 {
+        let mappings = [
+            (0usize, 0u16), // A
+            (1, 1),         // B
+            (2, 2),         // X
+            (3, 3),         // Y
+            (4, 4),         // LB / L1
+            (5, 5),         // RB / R1
+            (8, 6),         // Back / View / Share
+            (9, 7),         // Start / Menu / Options
+            (10, 8),        // LS / L3
+            (11, 9),        // RS / R3
+            (16, 10),       // Guide / Home / PS
+        ];
         let mut bits = 0u16;
-        for index in 0..MAX_BUTTONS {
-            if self.pressed(index) {
-                bits |= 1 << index;
+        for (button, bit) in mappings {
+            if self.pressed(button) {
+                bits |= 1 << bit;
             }
         }
         bits
     }
 
-    /// Encodes the snapshot as the 10-byte input report described by
-    /// [`REPORT_DESCRIPTOR`].
+    /// Encodes the snapshot as the 14-byte Xbox-style input report described
+    /// by [`REPORT_DESCRIPTOR`].
     pub fn report(&self) -> [u8; REPORT_LEN] {
         let mut report = [0u8; REPORT_LEN];
         report[0] = 0x01;
-        report[1] = axis_byte(self.axis(0));
-        report[2] = axis_byte(self.axis(1));
-        report[3] = axis_byte(self.axis(2));
-        report[4] = axis_byte(self.axis(3));
-        report[5] = trigger_byte(self.trigger(6, 4));
-        report[6] = trigger_byte(self.trigger(7, 5));
-        report[7] = self.hat();
         let bits = self.button_bits();
-        report[8] = (bits & 0xFF) as u8;
-        report[9] = (bits >> 8) as u8;
+        report[1] = (bits & 0xFF) as u8;
+        report[2] = (bits >> 8) as u8;
+        report[3] = self.hat();
+        report[4] = trigger_byte(self.trigger(6, 4));
+        report[5] = trigger_byte(self.trigger(7, 5));
+        write_axis(&mut report, 6, axis_short(self.axis(0)));
+        write_axis(&mut report, 8, axis_short(self.axis(1)));
+        write_axis(&mut report, 10, axis_short(self.axis(2)));
+        write_axis(&mut report, 12, axis_short(self.axis(3)));
         report
     }
 }
 
-fn axis_byte(value: f64) -> u8 {
-    ((value.clamp(-1.0, 1.0) + 1.0) * 127.5).round() as u8
+fn axis_short(value: f64) -> i16 {
+    (value.clamp(-1.0, 1.0) * 32767.0).round() as i16
+}
+
+fn write_axis(report: &mut [u8; REPORT_LEN], offset: usize, value: i16) {
+    let bytes = value.to_le_bytes();
+    report[offset] = bytes[0];
+    report[offset + 1] = bytes[1];
 }
 
 fn trigger_byte(value: f64) -> u8 {
     (value.clamp(0.0, 1.0) * 255.0).round() as u8
 }
 
-/// HID report descriptor: a 6-axis, 16-button gamepad with a hat switch.
-pub const REPORT_DESCRIPTOR: [u8; 75] = [
+/// HID report descriptor for an Xbox-style gamepad.
+///
+/// macOS GameController/SDL/Steam recognise this layout: 16 buttons, a 4-bit
+/// hat with padding, two 8-bit triggers, and four signed 16-bit stick axes.
+/// The report byte order is buttons, hat, triggers, axes — matching the
+/// struct byte order, not the W3C order.
+pub const REPORT_DESCRIPTOR: &[u8] = &[
     0x05, 0x01, // Usage Page (Generic Desktop)
-    0x09, 0x05, // Usage (Game Pad)
+    0x09, 0x04, // Usage (Joystick)
     0xA1, 0x01, // Collection (Application)
     0x85, 0x01, //   Report ID (1)
-    0x09, 0x30, //   Usage (X)
-    0x09, 0x31, //   Usage (Y)
-    0x09, 0x32, //   Usage (Z)
-    0x09, 0x33, //   Usage (Rx)
-    0x09, 0x34, //   Usage (Ry)
-    0x09, 0x35, //   Usage (Rz)
-    0x15, 0x00, //   Logical Minimum (0)
-    0x26, 0xFF, 0x00, //   Logical Maximum (255)
-    0x75, 0x08, //   Report Size (8)
-    0x95, 0x06, //   Report Count (6)
-    0x81, 0x02, //   Input (Data,Var,Abs)
-    0x09, 0x39, //   Usage (Hat switch)
-    0x15, 0x00, //   Logical Minimum (0)
-    0x25, 0x07, //   Logical Maximum (7)
-    0x35, 0x00, //   Physical Minimum (0)
-    0x46, 0x3B, 0x01, //   Physical Maximum (315)
-    0x65, 0x14, //   Unit (Eng Rot: Degree)
-    0x75, 0x04, //   Report Size (4)
-    0x95, 0x01, //   Report Count (1)
-    0x81, 0x42, //   Input (Data,Var,Abs,Null State)
-    0x65, 0x00, //   Unit (None)
     0x05, 0x09, //   Usage Page (Button)
     0x19, 0x01, //   Usage Minimum (1)
     0x29, 0x10, //   Usage Maximum (16)
     0x15, 0x00, //   Logical Minimum (0)
     0x25, 0x01, //   Logical Maximum (1)
-    0x75, 0x01, //   Report Size (1)
     0x95, 0x10, //   Report Count (16)
+    0x75, 0x01, //   Report Size (1)
     0x81, 0x02, //   Input (Data,Var,Abs)
+    0x05, 0x01, //   Usage Page (Generic Desktop)
+    0x09, 0x39, //   Usage (Hat switch)
+    0x15, 0x00, //   Logical Minimum (0)
+    0x25, 0x07, //   Logical Maximum (7)
+    0x35, 0x00, //   Physical Minimum (0)
+    0x46, 0x3B, 0x01, // Physical Maximum (315)
+    0x65, 0x14, //   Unit (Eng Rot: Degree)
     0x75, 0x04, //   Report Size (4)
     0x95, 0x01, //   Report Count (1)
-    0x81, 0x03, //   Input (Const,Var,Abs)
+    0x81, 0x42, //   Input (Data,Var,Abs,Null State)
+    0x75, 0x04, //   Report Size (4)
+    0x95, 0x01, //   Report Count (1)
+    0x81, 0x01, //   Input (Const)
+    0x05, 0x02, //   Usage Page (Simulation Controls)
+    0x09, 0xC5, //   Usage (Brake) - left trigger
+    0x09, 0xC4, //   Usage (Accelerator) - right trigger
+    0x15, 0x00, //   Logical Minimum (0)
+    0x26, 0xFF, 0x00, // Logical Maximum (255)
+    0x75, 0x08, //   Report Size (8)
+    0x95, 0x02, //   Report Count (2)
+    0x81, 0x02, //   Input (Data,Var,Abs)
+    0x05, 0x01, //   Usage Page (Generic Desktop)
+    0x09, 0x30, //   Usage (X) - left stick X
+    0x09, 0x31, //   Usage (Y) - left stick Y
+    0x09, 0x32, //   Usage (Z) - right stick X
+    0x09, 0x35, //   Usage (Rz) - right stick Y
+    0x16, 0x00, 0x80, // Logical Minimum (-32768)
+    0x26, 0xFF, 0x7F, // Logical Maximum (32767)
+    0x75, 0x10, //   Report Size (16)
+    0x95, 0x04, //   Report Count (4)
+    0x81, 0x02, //   Input (Data,Var,Abs)
     0xC0, // End Collection
 ];
 
@@ -227,15 +265,15 @@ impl VirtualGamepad {
         );
         properties.add(
             &CFString::from("Transport"),
-            &CFString::from("Virtual").as_CFType(),
+            &CFString::from("USB").as_CFType(),
         );
         properties.add(
             &CFString::from("VendorID"),
-            &CFNumber::from(0x1234i32).as_CFType(),
+            &CFNumber::from(0x1209i32).as_CFType(),
         );
         properties.add(
             &CFString::from("ProductID"),
-            &CFNumber::from(0x5678i32 + i32::from(slot)).as_CFType(),
+            &CFNumber::from(0x5853i32 + i32::from(slot)).as_CFType(),
         );
         properties.add(
             &CFString::from("VersionNumber"),
@@ -247,7 +285,7 @@ impl VirtualGamepad {
         );
         properties.add(
             &CFString::from("PrimaryUsage"),
-            &CFNumber::from(0x05i32).as_CFType(),
+            &CFNumber::from(0x04i32).as_CFType(),
         );
 
         let raw =
@@ -315,38 +353,69 @@ mod tests {
     fn centers_sticks_and_releases_triggers() {
         let report = state(&[0.0, 0.0, 0.0, 0.0], &[]).report();
         assert_eq!(report[0], 0x01);
-        assert_eq!(&report[1..5], &[128, 128, 128, 128]);
-        assert_eq!(&report[5..7], &[0, 0]);
-        assert_eq!(report[7], 0x0F);
-        assert_eq!(&report[8..10], &[0, 0]);
+        assert_eq!(&report[1..3], &[0, 0]);
+        assert_eq!(report[3], 0x0F);
+        assert_eq!(&report[4..6], &[0, 0]);
+        assert_eq!(&report[6..14], &[0; 8]);
     }
 
     #[test]
     fn maps_stick_extremes_and_inverts_nothing() {
         let report = state(&[-1.0, 1.0, -1.0, 1.0], &[]).report();
-        assert_eq!(&report[1..5], &[0, 255, 0, 255]);
+        assert_eq!(i16::from_le_bytes([report[6], report[7]]), -32767);
+        assert_eq!(i16::from_le_bytes([report[8], report[9]]), 32767);
+        assert_eq!(i16::from_le_bytes([report[10], report[11]]), -32767);
+        assert_eq!(i16::from_le_bytes([report[12], report[13]]), 32767);
     }
 
     #[test]
     fn maps_triggers_from_buttons_and_axes() {
         let from_buttons = state(&[], &[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.5]).report();
-        assert_eq!(from_buttons[5], 255);
-        assert_eq!(from_buttons[6], 128);
+        assert_eq!(from_buttons[4], 255);
+        assert_eq!(from_buttons[5], 128);
 
         let from_axes = state(&[0.0, 0.0, 0.0, 0.0, 0.25, 0.75], &[]).report();
-        assert_eq!(from_axes[5], 64);
-        assert_eq!(from_axes[6], 191);
+        assert_eq!(from_axes[4], 64);
+        assert_eq!(from_axes[5], 191);
     }
 
     #[test]
-    fn maps_dpad_to_hat_and_buttons() {
-        let mut buttons = vec![0.0; 16];
+    fn maps_w3c_buttons_to_xbox_hid_layout() {
+        let mut buttons = vec![0.0; MAX_BUTTONS];
+        for index in [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 16] {
+            buttons[index] = 1.0;
+        }
+        let report = state(&[], &buttons).report();
+        // A/B/X/Y + LB/RB -> 0b0011_1111; Back/Start -> 0b1100_0000.
+        assert_eq!(report[1], 0xFF);
+        // LS/RS -> bits 0/1; Guide -> bit 2.
+        assert_eq!(report[2], 0b0000_0111);
+        // Triggers are separate fields, never button bits.
+        assert_eq!(&report[1..3], &[0xFF, 0x07]);
+    }
+
+    #[test]
+    fn shoulders_sticks_menu_and_guide_keep_their_labels() {
+        let mut buttons = vec![0.0; MAX_BUTTONS];
+        // LB, RB, Back, Start, LS, RS, Guide.
+        for index in [4, 5, 8, 9, 10, 11, 16] {
+            buttons[index] = 1.0;
+        }
+        let report = state(&[], &buttons).report();
+        assert_eq!(report[1] & 0b0011_0000, 0b0011_0000, "LB/RB bits 4/5");
+        assert_eq!(report[1] & 0b1100_0000, 0b1100_0000, "Back/Start bits 6/7");
+        assert_eq!(report[2] & 0b0000_0011, 0b0000_0011, "LS/RS bits 8/9");
+        assert_eq!(report[2] & 0b0000_0100, 0b0000_0100, "Guide bit 10");
+    }
+
+    #[test]
+    fn maps_dpad_to_hat_only() {
+        let mut buttons = vec![0.0; MAX_BUTTONS];
         buttons[12] = 1.0; // up
         buttons[15] = 1.0; // right
         let report = state(&[], &buttons).report();
-        assert_eq!(report[7], 1);
-        assert_eq!(report[8], 0b0000_0000);
-        assert_eq!(report[9], 0b1001_0000);
+        assert_eq!(report[3], 1);
+        assert_eq!(&report[1..3], &[0, 0]);
     }
 
     #[test]
@@ -371,6 +440,6 @@ mod tests {
     fn report_descriptor_is_well_formed() {
         assert_eq!(REPORT_DESCRIPTOR[0], 0x05);
         assert_eq!(*REPORT_DESCRIPTOR.last().unwrap(), 0xC0);
-        assert_eq!(REPORT_DESCRIPTOR.len(), 75);
+        assert_eq!(REPORT_DESCRIPTOR.len(), 91);
     }
 }
