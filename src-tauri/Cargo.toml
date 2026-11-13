@@ -1,0 +1,70 @@
+[package]
+name = "parsecplus"
+version = "0.1.0"
+description = "ParsecPlus — low-latency remote desktop client and host"
+authors = ["ParsecPlus contributors"]
+edition = "2021"
+
+[lib]
+name = "parsecplus_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+async-trait = "0.1"
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+snow = "0.9"
+rand_core = { version = "0.6", features = ["getrandom"] }
+webrtc = "0.21"
+rtc = { version = "0.21.1", default-features = false }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "sync", "time"] }
+base64 = "0.22"
+if-addrs = "0.15"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+core-graphics-types = "0.2"
+jpeg-encoder = "0.7"
+macos-media-toolkit = "0.1"
+mdns-sd = "0.21"
+metal = "0.33"
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+    "std",
+    "NSGraphics",
+    "NSPasteboard",
+    "NSResponder",
+    "NSView",
+    "NSWindow",
+    "objc2-quartz-core",
+] }
+objc2-foundation = { version = "0.3", default-features = false, features = [
+    "std",
+    "NSGeometry",
+] }
+objc2-quartz-core = { version = "0.3", default-features = false, features = [
+    "std",
+    "CALayer",
+] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
+
+# Stripping proc-macro dylibs produces malformed binaries with current
+# rustc/linker combinations, so keep build-time artifacts unstripped.
+[profile.release.build-override]
+strip = false
+
+[dev-dependencies]
+parsecplus-relay = { path = "../relay" }
