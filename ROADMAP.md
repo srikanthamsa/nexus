@@ -17,8 +17,9 @@ Tailscale) and the Phase 3.11 multi-viewer/presence batch.
   keyboard/mouse/gamepad switches and disconnect, and two-minute pending requests.
 - Screenshot-quality capture/encode/decode with hardware HEVC; a "Match display" aspect-correct
   preset; hardware cursor; input forwarding with an explicit arm + Accessibility gate.
-- No accounts, audio, clipboard (in progress), file transfer, gamepad events, multi-monitor
-  playback, Windows support, notarization or auto-update yet.
+- Clipboard text sync and client-side multi-display switching are implemented; controller
+  passthrough code exists but is blocked by the macOS virtual-HID entitlement (see 4.5).
+- No accounts, audio, file transfer, Windows support, notarization or auto-update yet.
 
 ## Phase 4 — Session essentials (next, current work)
 
@@ -32,13 +33,13 @@ Ordered by user-visible value per unit of risk.
   first-use pasteboard note are in the app.
 - Next: live test with a second viewer; confirm macOS pasteboard prompts are acceptable or default it off.
 
-### 4.2 Multi-monitor host selection (host side implemented) + always-on access
+### 4.2 Multi-monitor host selection and client-side switching (implemented)
 - `display_info.rs` lists every ScreenCaptureKit shareable display (`native_list_displays`), the
   Host → Video picker writes `HostSettings.displayIndex`, and hosting/live preview capture the
   chosen display with aspect-matched dimensions.
-- Remote access is now always on while the app runs: the listener auto-starts for a signed-in
-  profile, the Host card is informational (Remote access · Live), and joining always goes through
-  an explicit request/approval or a pasted invite/direct-connection string.
+- Remote access is an explicit Host toggle (off at launch). Joining always goes through an
+  explicit request/approval or a pasted invite/direct-connection string; the invite code stays
+  valid for saved reconnect entries until manually rotated.
 - Client-side switching is implemented: Welcome advertises the host's shareable displays, the
   session menu lists them, `RequestDisplay` swaps the host capture pipeline without reconnecting,
   and `DisplayChanged` updates the live resolution. Failed switches keep the old display. The list
@@ -64,9 +65,12 @@ Ordered by user-visible value per unit of risk.
 - Client-side W3C Gamepad API polling, changed-snapshot forwarding over the encrypted control
   channel, and host-side virtual HID gamepad injection are implemented. The host toggle and the
   per-viewer gamepad switch are real and enforced.
-- **Platform gate:** macOS requires the restricted `com.apple.developer.hid.virtual.device`
-  entitlement to create a virtual HID device. Unsigned/self-signed builds surface the failure in
-  Host → Advanced; signing with the entitlement makes injection work without code changes.
+- **Platform gate / verification:** macOS requires the restricted
+  `com.apple.developer.hid.virtual.device` entitlement to create a virtual HID device. The current
+  ad-hoc-signed build has no entitlements, so the host cannot create the virtual pad and surfaces
+  that in Host → Advanced. The report-mapping and protocol paths are unit-tested, but no physical
+  controller has been verified end to end. Signing with the entitlement is required before a
+  hardware test; injection then needs no code changes.
 - Next: native GameController.framework polling (so input works when the webview is not focused),
   multiple simultaneous controllers per viewer, relative mouse, pen/tablet pressure, and
   clipboard/audio hotkeys.
