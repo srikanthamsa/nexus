@@ -1,7 +1,7 @@
 # ParsecPlus roadmap
 
 A re-laid plan after the first real cross-city session (Vizag host ↔ Mumbai/Bengaluru client over
-ZeroTier) and the Phase 3.11 multi-viewer/presence batch.
+Tailscale) and the Phase 3.11 multi-viewer/presence batch.
 
 ## Where the app is today
 
@@ -9,7 +9,7 @@ ZeroTier) and the Phase 3.11 multi-viewer/presence batch.
 - **No demo data**: the app is driven by a real local profile, real recent connections, real host
   status/viewers, and honest empty states. Friends/Teams are account-phase placeholders; Arcade is
   an explicit coming-soon section; unimplemented settings are disabled/planned rather than faked.
-- Direct LAN/ZeroTier internet sessions with an optional single-use join code
+- Direct LAN/Tailscale internet sessions with an optional single-use join code
   (`PC1-…`), plus a self-hostable ciphertext relay and configurable STUN/TURN.
 - WebRTC/SRTP+RTP media path: HEVC RTP, TWCC feedback, GCC-style congestion control, pacer,
   NACK, FlexFEC, TCP fallback, automatic keyframe recovery.

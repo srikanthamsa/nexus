@@ -1708,9 +1708,7 @@ fn serve_client(
                                 RemoteInput::Key { .. } | RemoteInput::Text { .. } => {
                                     peer.keyboard.load(Ordering::SeqCst)
                                 }
-                                RemoteInput::Gamepad { .. } => {
-                                    peer.gamepad.load(Ordering::SeqCst)
-                                }
+                                RemoteInput::Gamepad { .. } => peer.gamepad.load(Ordering::SeqCst),
                             });
                             if !allowed {
                                 continue;

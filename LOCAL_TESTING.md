@@ -8,7 +8,7 @@ handshake, real approval request and real remote session.
 
 This validates: host start/stop, invite/direct-connection codes, approval, WebRTC/TCP path,
 video, input, clipboard, session HUD, display switching (if you have two displays), and
-disconnect/reconnect. It does **not** validate cross-machine NAT, ZeroTier, a real relay, or
+disconnect/reconnect. It does **not** validate cross-machine NAT, Tailscale, a real relay, or
 two different GPUs — for those you need a second physical machine (or a macOS VM).
 
 ## Recommended: two app copies on this Mac
@@ -63,7 +63,7 @@ two different GPUs — for those you need a second physical machine (or a macOS 
   grant Screen Recording to that copy separately (TCC identifies the app bundle); if you use the
   original as host, its existing grant is enough. Re-grant after every rebuilt ad-hoc signature.
 - Use the **direct connection** string or `127.0.0.1:39200` with the invite code. A join code that
-  contains this Mac’s LAN/ZeroTier address also works locally because the address is reachable.
+  contains this Mac’s LAN/Tailscale address also works locally because the address is reachable.
 - If you have no external display, the **Shared display** switcher stays hidden (only one display).
 - macOS may show “ParsecPlus is already running” if you use Finder’s normal Open; always use
   `open -n` or the binary launch above.

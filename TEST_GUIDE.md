@@ -7,29 +7,30 @@ The app is macOS-only today (the host and client both use ScreenCaptureKit/Video
 The build is ad-hoc signed, not notarized, so the friend's Mac needs the usual
 right-click → **Open**, or **System Settings → Privacy & Security → Open Anyway**.
 
-## Quick path with ZeroTier (recommended for this setup)
+## Quick path with Tailscale (recommended for this setup)
 
-You already run ZeroTier network `a09acf02332a5b30` and your friend is joined, so no port
-forwarding and no STUN/TURN server is needed: ZeroTier puts both Macs on the same virtual LAN, and
-ParsecPlus can generate a direct connection string from its ZeroTier address.
+You already run Tailscale and your friend is on the same tailnet, so no port forwarding and no
+STUN/TURN server is needed: Tailscale puts both Macs on the same virtual network, and ParsecPlus can
+generate a direct connection string from the host's Tailscale address.
 
-1. Both Macs run the same ParsecPlus build and are joined to the ZeroTier network. No account or
+1. Both Macs run the same ParsecPlus build and are joined to the Tailscale network. No account or
    login is needed: on first launch choose **Set up this Mac** and enter a display name — this is a
    local profile that never leaves the device (there is no demo workspace or seeded data). You can
    change the name later under **Settings → Account** so the host's approval card is unambiguous. Confirm the
-   host's managed IP with `zerotier-cli listnetworks` (this Mac: `192.168.195.252/24`). On first
+   host's tailnet IP with `tailscale ip -4` (this Mac: `100.125.242.28`) and check
+   `tailscale status` says `Running`. On first
    launch, allow ParsecPlus under **System Settings → Privacy & Security → Local Network** and, if
    macOS asks, allow it to accept incoming connections in the firewall.
 2. **Host:** remote access is always on — no toggle. Open **Host**; the **Remote access** card
    shows **Live** and the listener address. Open **Host → Network → Share with a friend**; the card
-   detects ZeroTier, shows the network ID/status, and preselects the ZeroTier address. Copy either
+   detects Tailscale, shows the tailnet/status, and preselects the Tailscale address. Copy either
    the **invite code** (8 characters) or the **direct connection** string (starts with `PC1-`).
 3. Send one of them to your friend out of band. The invite code stays valid until you press **New code**, so a saved computer can reconnect without re-entering it.
 4. **Friend:** Computers → **Connect directly** → **Invite code** → paste → **Send request**. The
-   direct connection string carries the ZeroTier address, TCP port `39200`, and the invite code.
+   direct connection string carries the Tailscale address, TCP port `39200`, and the invite code.
 5. You get the **Approve / Reject** request on the host; the request also stays in the presence dock for two minutes. Approve whenever you are ready.
-6. The stream starts. If ICE connects over the ZeroTier interface the transport is **WebRTC · UDP**
-   (RTP video with GCC/FEC); otherwise the encrypted TCP fallback runs over ZeroTier. Both work;
+6. The stream starts. If ICE connects over the Tailscale interface the transport is **WebRTC · UDP**
+   (RTP video with GCC/FEC); otherwise the encrypted TCP fallback runs over Tailscale. Both work;
    WebRTC is the low-latency path.
 7. The invite/direct-connection code stays valid for saved computers until you rotate it; the
    client stores it after the first session and offers a one-click **Reconnect** next time. The presence dock (bottom right, all screens) lists
@@ -39,16 +40,16 @@ No accounts yet: a persistent friend list needs the Phase 5 service layer. The i
 direct connection string is the secure, accountless equivalent today — one string, one request,
 one approval, stream.
 
-### Troubleshooting the ZeroTier path
+### Troubleshooting the Tailscale path
 
 | Symptom | Check |
 | --- | --- |
-| Friend cannot reach the host | Both `zerotier-cli listnetworks` show `OK` and a managed IP in the same network; `ping <host's ZeroTier IP>` from the friend's Mac |
+| Friend cannot reach the host | `tailscale status` shows `Running` on both and an IP in the same tailnet; `tailscale ping <host's Tailscale IP>` from the friend's Mac |
 | Connect times out | macOS firewall: allow **ParsecPlus** incoming connections; hosting must be on when the friend connects |
 | Approve card never appears | The friend's client got past TCP but the host approval gate is on; the card is over any screen — also check the code was copied whole |
-| Transport says TCP | ICE over the ZeroTier interface did not connect; the session still works over TCP. Re-run with both Macs on the same ZeroTier network, and allow incoming connections |
+| Transport says TCP | ICE over the Tailscale interface did not connect; the session still works over TCP. Re-run with both Macs on the same Tailscale network, and allow incoming connections |
 | Join code rejected | It is single-use and rotates; copy the current code from the Host screen again |
-| No ZeroTier address in the picker | Start ZeroTier first (`zerotier-cli listnetworks` shows `OK`), then reopen the Host screen; the app also looks for `/usr/local/bin/zerotier-cli` |
+| No Tailscale address in the picker | Start Tailscale first (`tailscale status` shows `Running`), then reopen the Host screen; the app looks for `tailscale` in PATH, `/usr/local/bin`, `/opt/homebrew/bin`, and the app bundle |
 
 ## What the session needs
 
@@ -58,7 +59,7 @@ one approval, stream.
 | UDP (host inbound) | 39201 (configurable, Host → Network) | HEVC RTP video, GCC congestion control, FEC and NACK when WebRTC connects |
 | UDP (outbound only) | ephemeral | The client needs no port forwarding |
 
-The port table below applies to Path B (port forwarding). On the ZeroTier path only TCP `39200` over the ZeroTier interface is needed, with no forwarding. Only the **host** needs forwarded ports and a reachable public address. The client works from any
+The port table below applies to Path B (port forwarding). On the Tailscale path only TCP `39200` over the Tailscale interface is needed, with no forwarding. Only the **host** needs forwarded ports and a reachable public address. The client works from any
 ordinary network, including mobile hotspots.
 
 There is no default STUN/TURN server: with the fields empty, no third party is contacted. For an
@@ -130,7 +131,7 @@ On both machines:
 
 ## Path B — direct internet with port forwarding + STUN
 
-Use this when ZeroTier is not available. The host needs router access and a reachable public IP.
+Use this when Tailscale is not available. The host needs router access and a reachable public IP.
 
 ## Step 1 — Host (in Vizag)
 
@@ -225,7 +226,7 @@ cropped.
   `cargo run --manifest-path relay/Cargo.toml --release -- --bind 0.0.0.0 --port 39210`, open TCP
   39210, set **Host → Network → Relay address** to `vps:39210`, enable **Relay invite**, and send
   the invite. Relay sessions deliberately stay on TCP, so they do not exercise the RTP path.
-- **Tailscale or ZeroTier** on both Macs: connect directly to the host's tailnet/overlay IP and
+- **Tailscale or another VPN overlay** on both Macs: connect directly to the host's tailnet/overlay IP and
   port 39200. No app changes are needed, and it is the quickest way to get a real cross-city
   session when routers cannot be configured.
 
@@ -240,7 +241,7 @@ cropped.
 | Session ends immediately after accepting | Host logs in Host → status error; screen-recording permission revoked, or encoder failed |
 | Works on LAN, fails across cities | Almost always missing port forward/public IP, missing STUN, or CGNAT; compare `Path` values before/after |
 
-The first real cross-city session (ZeroTier direct path) ran at ~19 Mbps with a 338 ms RTT while
+The first real cross-city session (Tailscale direct path) ran at ~19 Mbps with a 338 ms RTT while
 the old 35 Mbps ceiling left a standing queue on the host's uplink; the 12 Mbps default, smaller
 pacer/video queues, session-long GCC base delay and RTT/loss trimming exist to fix exactly that.
 Treat a first run's numbers as observations; the values that matter are RTT, jitter, dropped

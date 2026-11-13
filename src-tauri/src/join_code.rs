@@ -1,6 +1,6 @@
 //! A single string a friend can paste to start a direct session.
 //!
-//! Telling someone "install ZeroTier, join this network, then type my IP, my
+//! Telling someone "install Tailscale, join this tailnet, then type my IP, my
 //! port, and this eight-character pairing code" is exactly the friction this
 //! build is trying to remove. A join code compresses the three things a client
 //! really needs — the host's IPv4 address, its media port, and the single-use
@@ -133,13 +133,13 @@ pub fn decode(value: &str) -> Result<JoinCode, String> {
 fn validate_shareable(ip: Ipv4Addr) -> Result<(), String> {
     if ip.is_unspecified() {
         return Err(
-            "0.0.0.0 is not reachable by a friend; share the ZeroTier or LAN address instead."
+            "0.0.0.0 is not reachable by a friend; share the Tailscale or LAN address instead."
                 .to_string(),
         );
     }
     if ip.is_loopback() {
         return Err(
-            "127.x is loopback and only works on this Mac; share the ZeroTier or LAN address \
+            "127.x is loopback and only works on this Mac; share the Tailscale or LAN address \
              instead."
                 .to_string(),
         );

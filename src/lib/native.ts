@@ -546,7 +546,7 @@ export type NativeJoinCodeParseResult =
 
 /**
  * Lists the local network addresses the host can share, preferring addresses
- * that belong to a ZeroTier interface. Returns null outside the desktop app.
+ * that belong to a Tailscale interface. Returns null outside the desktop app.
  */
 export async function listNativeNetworkAddresses(): Promise<NetworkInfo | null> {
   if (!isTauri()) return null;

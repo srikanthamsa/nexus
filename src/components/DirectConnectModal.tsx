@@ -300,7 +300,7 @@ export function DirectConnectModal({
                   <ShieldCheck size={17} />
                 </span>
                 <div>
-                  <p>ZeroTier-ready</p>
+                  <p>Tailscale-ready</p>
                   <span>
                     The code carries the host's address, port, and invite code. Your
                     friend approves the connection before streaming starts.

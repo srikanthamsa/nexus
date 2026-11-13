@@ -244,7 +244,7 @@ fn generate_pair_code() -> String {
     transport::generate_pair_code()
 }
 
-/// Lists the addresses a friend could dial, with the ZeroTier network marked so
+/// Lists the addresses a friend could dial, with the Tailscale tailnet marked so
 /// the Host screen can default to the overlay address.
 #[tauri::command(async)]
 fn native_network_addresses() -> network::NetworkInfo {

@@ -1,29 +1,33 @@
-//! Which addresses this machine can be reached on, and whether ZeroTier is one.
+//! Which addresses this machine can be reached on, and whether Tailscale is one.
 //!
 //! A direct session needs a peer-reachable address, but a Mac usually has
-//! several: `en0`, a few `utun*` interfaces, and whatever a VPN or ZeroTier
+//! several: `en0`, a few `utun*` interfaces, and whatever a VPN or Tailscale
 //! created. Listing every usable IPv4 address lets the Host screen offer a
-//! concrete choice instead of guessing. Recognising ZeroTier is what makes a
+//! concrete choice instead of guessing. Recognising Tailscale is what makes a
 //! single-string join code practical without port forwarding or a relay: both
-//! peers are already on the same virtual network, so the host can advertise
-//! the address ZeroTier assigned it and the friend can reach it directly.
+//! peers are already on the same tailnet, so the host can advertise the
+//! address Tailscale assigned it and the friend can reach it directly.
 //!
-//! ZeroTier is detected through its own CLI rather than by interface name,
-//! because the interface name (`feth2576` on this Mac) is generated per
-//! install. The CLI's JSON also names the network and the local device, which
+//! Tailscale is detected through its own CLI rather than by interface name,
+//! because the interface name (`utun*`) is not stable and is shared with other
+//! tunnels. The CLI's JSON also names the tailnet and the local device, which
 //! is what the UI wants to show. Every part degrades quietly: a missing CLI,
-//! a stopped daemon, or malformed output simply means no ZeroTier entries and
+//! a stopped daemon, or malformed output simply means no Tailscale entries and
 //! the plain interface list still works.
 
 use std::collections::HashSet;
 use std::net::Ipv4Addr;
 use std::process::Command;
 
-/// Preferred command name. The installer's location is tried as a fallback
-/// because a GUI app can start with a PATH that does not include
-/// `/usr/local/bin`, and the binary is a symlink whose name selects CLI mode.
-const ZERO_TIER_CLI: &str = "zerotier-cli";
-const ZERO_TIER_CLI_FALLBACK: &str = "/usr/local/bin/zerotier-cli";
+/// A GUI app can start with a PATH that does not include the CLI, so try the
+/// usual install locations after the plain command name. The macOS app bundle
+/// carries the real binary; `/usr/local/bin/tailscale` is usually a shim.
+const TAILSCALE_CLI_CANDIDATES: [&str; 4] = [
+    "tailscale",
+    "/usr/local/bin/tailscale",
+    "/opt/homebrew/bin/tailscale",
+    "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+];
 
 /// One usable IPv4 address with the interface that carries it.
 #[derive(Debug, Clone, serde::Serialize)]
@@ -32,16 +36,21 @@ pub struct NetworkAddress {
     pub interface: String,
     pub address: String,
     pub label: String,
-    pub zero_tier: bool,
+    pub tailscale: bool,
 }
 
-/// The ZeroTier network this machine is joined to, for display.
+/// The Tailscale tailnet this machine is joined to, for display.
 #[derive(Debug, Clone, serde::Serialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct ZeroTierInfo {
-    pub network_id: String,
-    pub name: String,
+pub struct TailscaleInfo {
+    /// Stable tailnet suffix, e.g. `tail98fbab.ts.net`.
+    pub tailnet: String,
+    /// Host name reported by Tailscale, e.g. `Srikant’s MacBook Air`.
+    pub host_name: String,
+    /// Backend state, e.g. `Running`.
     pub status: String,
+    /// The Tailscale IPv4 address(es) assigned to this Mac.
+    pub addresses: Vec<String>,
 }
 
 /// Everything the Host screen needs to describe how this Mac is reachable.
@@ -49,24 +58,23 @@ pub struct ZeroTierInfo {
 #[serde(rename_all = "camelCase")]
 pub struct NetworkInfo {
     pub addresses: Vec<NetworkAddress>,
-    pub zero_tier: Option<ZeroTierInfo>,
+    pub tailscale: Option<TailscaleInfo>,
 }
 
-/// A ZeroTier network as reported by `zerotier-cli -j listnetworks`.
+/// A parsed `tailscale status --json` result.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ZeroTierNetwork {
-    id: String,
-    name: String,
+struct TailscaleStatus {
+    tailnet: String,
+    host_name: String,
     status: String,
     assigned: Vec<Ipv4Addr>,
-    port_device: String,
 }
 
-/// Lists the usable IPv4 addresses and, when available, the ZeroTier network.
+/// Lists the usable IPv4 addresses and, when available, the Tailscale tailnet.
 pub fn network_info() -> NetworkInfo {
     let addresses = interface_addresses();
-    let networks = zero_tier_networks();
-    compose_network_info(addresses, &networks)
+    let status = tailscale_status();
+    compose_network_info(addresses, status.as_ref())
 }
 
 /// Every non-loopback, non-link-local IPv4 address `if_addrs` reports.
@@ -84,82 +92,83 @@ fn interface_addresses() -> Vec<NetworkAddress> {
                 return None;
             }
             Some(NetworkAddress {
-                // Until ZeroTier claims it, an address is labelled by its
+                // Until Tailscale claims it, an address is labelled by its
                 // interface, which is what a LAN user recognises.
                 label: interface.name.clone(),
                 interface: interface.name,
                 address: ip.to_string(),
-                zero_tier: false,
+                tailscale: false,
             })
         })
         .collect()
 }
 
-/// Reads ZeroTier's joined networks, tolerating a missing or failing CLI.
-fn zero_tier_networks() -> Vec<ZeroTierNetwork> {
-    for candidate in [ZERO_TIER_CLI, ZERO_TIER_CLI_FALLBACK] {
-        let Ok(output) = Command::new(candidate)
-            .args(["-j", "listnetworks"])
-            .output()
-        else {
+/// Reads `tailscale status --json`, tolerating a missing or failing CLI.
+fn tailscale_status() -> Option<TailscaleStatus> {
+    for candidate in TAILSCALE_CLI_CANDIDATES {
+        let Ok(output) = Command::new(candidate).args(["status", "--json"]).output() else {
             continue;
         };
         if !output.status.success() {
             continue;
         }
         let stdout = String::from_utf8_lossy(&output.stdout);
-        return parse_zero_tier_networks(&stdout);
+        if let Some(status) = parse_tailscale_status(&stdout) {
+            return Some(status);
+        }
     }
-    Vec::new()
+    None
 }
 
-/// Parses `zerotier-cli -j listnetworks` output.
+/// Parses `tailscale status --json` output.
 ///
-/// Kept pure so the interesting cases (id/nwid fallback, CIDR addresses,
-/// malformed entries) are testable without a ZeroTier install. Anything that
-/// does not look like a joined network is skipped rather than failing the
-/// whole list: one bad entry must not hide a usable network.
-fn parse_zero_tier_networks(json: &str) -> Vec<ZeroTierNetwork> {
-    let value: serde_json::Value = match serde_json::from_str(json) {
-        Ok(value) => value,
-        Err(_) => return Vec::new(),
-    };
-    let Some(entries) = value.as_array() else {
-        return Vec::new();
-    };
+/// Current clients expose the IPv4/IPv6 list both at the top level and under
+/// `Self`; older clients only had the latter. IPv6 is ignored because the
+/// direct-session path is IPv4, and a tailnet without an IPv4 address is not
+/// useful here. Kept pure so the JSON shapes are testable without Tailscale.
+fn parse_tailscale_status(json: &str) -> Option<TailscaleStatus> {
+    let value: serde_json::Value = serde_json::from_str(json).ok()?;
+    let object = value.as_object()?;
 
-    let mut networks = Vec::new();
-    for entry in entries {
-        let Some(object) = entry.as_object() else {
-            continue;
-        };
-        // Modern clients report `id`; older ones only had `nwid`.
-        let id = match text_field(object, "id").or_else(|| text_field(object, "nwid")) {
-            Some(id) => id,
-            None => continue,
-        };
-        let assigned = object
-            .get("assignedAddresses")
-            .and_then(|value| value.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(|item| {
-                        let cidr = item.as_str()?.trim();
-                        cidr.split('/').next()?.parse::<Ipv4Addr>().ok()
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-        networks.push(ZeroTierNetwork {
-            id,
-            name: text_field(object, "name").unwrap_or_default(),
-            status: text_field(object, "status").unwrap_or_default(),
-            assigned,
-            port_device: text_field(object, "portDeviceName").unwrap_or_default(),
-        });
+    let assigned = object
+        .get("TailscaleIPs")
+        .and_then(|value| value.as_array())
+        .or_else(|| {
+            object
+                .get("Self")
+                .and_then(|value| value.as_object())
+                .and_then(|self_object| self_object.get("TailscaleIPs"))
+                .and_then(|value| value.as_array())
+        })?
+        .iter()
+        .filter_map(|item| item.as_str()?.trim().parse::<Ipv4Addr>().ok())
+        .collect::<Vec<_>>();
+
+    if assigned.is_empty() {
+        return None;
     }
-    networks
+
+    let self_object = object.get("Self").and_then(|value| value.as_object());
+    let host_name = self_object
+        .and_then(|self_object| text_field(self_object, "HostName"))
+        .or_else(|| self_object.and_then(|self_object| text_field(self_object, "DNSName")))
+        .unwrap_or_default();
+
+    let current_tailnet = object
+        .get("CurrentTailnet")
+        .and_then(|value| value.as_object());
+    let tailnet = current_tailnet
+        .and_then(|tailnet| text_field(tailnet, "MagicDNSSuffix"))
+        .or_else(|| text_field(object, "MagicDNSSuffix"))
+        .or_else(|| current_tailnet.and_then(|tailnet| text_field(tailnet, "Name")))
+        .unwrap_or_default();
+
+    Some(TailscaleStatus {
+        tailnet,
+        host_name,
+        status: text_field(object, "BackendState").unwrap_or_else(|| "Unknown".to_string()),
+        assigned,
+    })
 }
 
 /// A trimmed, non-empty string field from a JSON object.
@@ -171,11 +180,11 @@ fn text_field(object: &serde_json::Map<String, serde_json::Value>, key: &str) ->
     Some(value.to_string())
 }
 
-/// Merges interface addresses with ZeroTier networks: mark assigned
+/// Merges interface addresses with the Tailscale status: mark assigned
 /// addresses, add any the interface list missed, then order and dedupe.
 fn compose_network_info(
     addresses: Vec<NetworkAddress>,
-    networks: &[ZeroTierNetwork],
+    status: Option<&TailscaleStatus>,
 ) -> NetworkInfo {
     let mut addresses = addresses;
     let mut present: HashSet<String> = addresses
@@ -183,30 +192,30 @@ fn compose_network_info(
         .map(|entry| entry.address.clone())
         .collect();
 
-    for network in networks {
-        let label = format!("ZeroTier {}", network.id);
-        for assigned in &network.assigned {
+    if let Some(status) = status {
+        let label = if status.tailnet.is_empty() {
+            "Tailscale".to_string()
+        } else {
+            format!("Tailscale {}", status.tailnet)
+        };
+        for assigned in &status.assigned {
             let address = assigned.to_string();
-            // Resolve the position first so the borrow ends before any push:
-            // an address can be both reported and missing, and the two paths
-            // must not borrow the list at once.
             match addresses.iter().position(|entry| entry.address == address) {
                 Some(index) => {
-                    // First network wins if two networks assign the same address.
-                    if !addresses[index].zero_tier {
-                        addresses[index].zero_tier = true;
+                    if !addresses[index].tailscale {
+                        addresses[index].tailscale = true;
                         addresses[index].label = label.clone();
                     }
                 }
                 None => {
                     if present.insert(address.clone()) {
-                        // Assigned by ZeroTier but not visible in if_addrs; the
-                        // network's device name is the closest interface we have.
+                        // Assigned by Tailscale but not visible in if_addrs; a
+                        // utun interface is the closest label we have.
                         addresses.push(NetworkAddress {
-                            interface: network.port_device.clone(),
+                            interface: "utun".to_string(),
                             address,
                             label: label.clone(),
-                            zero_tier: true,
+                            tailscale: true,
                         });
                     }
                 }
@@ -214,16 +223,16 @@ fn compose_network_info(
         }
     }
 
-    // ZeroTier first (it is the remote-friendly address), then interface and
+    // Tailscale first (it is the remote-friendly address), then interface and
     // address so the list is stable between calls.
     addresses.sort_by(|left, right| {
         (
-            !left.zero_tier,
+            !left.tailscale,
             left.interface.as_str(),
             left.address.as_str(),
         )
             .cmp(&(
-                !right.zero_tier,
+                !right.tailscale,
                 right.interface.as_str(),
                 right.address.as_str(),
             ))
@@ -233,10 +242,11 @@ fn compose_network_info(
 
     NetworkInfo {
         addresses,
-        zero_tier: networks.first().map(|network| ZeroTierInfo {
-            network_id: network.id.clone(),
-            name: network.name.clone(),
-            status: network.status.clone(),
+        tailscale: status.map(|status| TailscaleInfo {
+            tailnet: status.tailnet.clone(),
+            host_name: status.host_name.clone(),
+            status: status.status.clone(),
+            addresses: status.assigned.iter().map(ToString::to_string).collect(),
         }),
     }
 }
@@ -245,143 +255,122 @@ fn compose_network_info(
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = r#"[
-        {
-            "id": "a09acf02332a5b30",
-            "nwid": "a09acf02332a5b30",
-            "name": "srikanthamsa",
-            "status": "OK",
-            "assignedAddresses": ["192.168.195.252/24"],
-            "portDeviceName": "feth2576"
+    const FIXTURE: &str = r#"{
+        "BackendState": "Running",
+        "TailscaleIPs": ["100.125.242.28", "fd7a:115c:a1e0::bb38:f21d"],
+        "MagicDNSSuffix": "tail98fbab.ts.net",
+        "Self": {
+            "HostName": "Srikant’s MacBook Air",
+            "DNSName": "srikants-macbook-air.tail98fbab.ts.net.",
+            "TailscaleIPs": ["100.125.242.28", "fd7a:115c:a1e0::bb38:f21d"]
         },
-        {
-            "nwid": "8056c2e21c000001",
-            "name": "fallback-nwid",
-            "status": "REQUESTING_CONFIGURATION",
-            "assignedAddresses": ["10.147.20.5/24", "not-an-address/24"],
-            "portDeviceName": ""
+        "CurrentTailnet": {
+            "Name": "srikanthamsa@gmail.com",
+            "MagicDNSSuffix": "tail98fbab.ts.net"
         }
-    ]"#;
+    }"#;
 
     fn address(interface: &str, ip: &str) -> NetworkAddress {
         NetworkAddress {
             interface: interface.to_string(),
             address: ip.to_string(),
             label: interface.to_string(),
-            zero_tier: false,
+            tailscale: false,
         }
     }
 
-    fn network(id: &str, assigned: &[&str], device: &str) -> ZeroTierNetwork {
-        ZeroTierNetwork {
-            id: id.to_string(),
-            name: "test".to_string(),
-            status: "OK".to_string(),
+    fn status(assigned: &[&str], tailnet: &str) -> TailscaleStatus {
+        TailscaleStatus {
+            tailnet: tailnet.to_string(),
+            host_name: "Test Mac".to_string(),
+            status: "Running".to_string(),
             assigned: assigned
                 .iter()
                 .map(|ip| ip.parse::<Ipv4Addr>().expect("valid test address"))
                 .collect(),
-            port_device: device.to_string(),
         }
     }
 
     #[test]
-    fn parses_networks_with_id_and_nwid_fallback() {
-        let networks = parse_zero_tier_networks(FIXTURE);
-        assert_eq!(networks.len(), 2);
-        assert_eq!(networks[0].id, "a09acf02332a5b30");
-        assert_eq!(networks[0].name, "srikanthamsa");
-        assert_eq!(networks[0].status, "OK");
-        assert_eq!(networks[1].id, "8056c2e21c000001");
-        assert_eq!(networks[1].status, "REQUESTING_CONFIGURATION");
+    fn parses_current_tailscale_status() {
+        let status = parse_tailscale_status(FIXTURE).expect("status");
+        assert_eq!(status.tailnet, "tail98fbab.ts.net");
+        assert_eq!(status.host_name, "Srikant’s MacBook Air");
+        assert_eq!(status.status, "Running");
+        assert_eq!(
+            status.assigned,
+            vec!["100.125.242.28".parse::<Ipv4Addr>().expect("address")]
+        );
     }
 
     #[test]
-    fn parses_assigned_cidrs_and_skips_bad_ones() {
-        let networks = parse_zero_tier_networks(FIXTURE);
-        assert_eq!(
-            networks[0].assigned,
-            vec!["192.168.195.252".parse::<Ipv4Addr>().expect("address")]
-        );
-        assert_eq!(
-            networks[1].assigned,
-            vec!["10.147.20.5".parse::<Ipv4Addr>().expect("address")]
-        );
-        assert_eq!(networks[0].port_device, "feth2576");
+    fn falls_back_to_self_ips_and_hostname() {
+        let json = r#"{
+            "BackendState": "NeedsLogin",
+            "Self": {
+                "HostName": "Office Mac",
+                "TailscaleIPs": ["100.64.0.9"]
+            }
+        }"#;
+        let status = parse_tailscale_status(json).expect("status");
+        assert_eq!(status.assigned, vec![Ipv4Addr::new(100, 64, 0, 9)]);
+        assert_eq!(status.host_name, "Office Mac");
+        assert_eq!(status.status, "NeedsLogin");
+        assert_eq!(status.tailnet, "");
     }
 
     #[test]
-    fn skips_malformed_entries_and_tolerates_garbage() {
-        let json = r#"[
-            null,
-            42,
-            {"name": "no id at all"},
-            {"id": ""},
-            {"id": "ok", "assignedAddresses": "not-an-array"},
-            {"id": "ok2", "name": 7, "status": false}
-        ]"#;
-        let networks = parse_zero_tier_networks(json);
-        assert_eq!(networks.len(), 2);
-        assert_eq!(networks[0].id, "ok");
-        assert!(networks[0].assigned.is_empty());
-        assert_eq!(networks[1].id, "ok2");
-        // Non-string name/status fall back to empty rather than failing.
-        assert_eq!(networks[1].name, "");
-        assert_eq!(networks[1].status, "");
-
-        assert!(parse_zero_tier_networks("not json").is_empty());
-        assert!(parse_zero_tier_networks("{}").is_empty());
+    fn ignores_ipv6_only_and_malformed_statuses() {
+        assert!(parse_tailscale_status(r#"{"TailscaleIPs":["fd7a::1"]}"#).is_none());
+        assert!(parse_tailscale_status("not json").is_none());
+        assert!(parse_tailscale_status("{}").is_none());
+        assert!(parse_tailscale_status("[]").is_none());
     }
 
     #[test]
     fn marks_matching_addresses_and_adds_missing_ones() {
         let interfaces = vec![
-            address("feth2576", "192.168.195.252"),
+            address("utun6", "100.125.242.28"),
             address("en0", "10.0.0.5"),
         ];
-        let networks = vec![network(
-            "a09acf02332a5b30",
-            &["192.168.195.252", "192.168.195.253"],
-            "feth2576",
-        )];
-        let info = compose_network_info(interfaces, &networks);
+        let status = status(&["100.125.242.28", "100.125.242.29"], "tail98fbab.ts.net");
+        let info = compose_network_info(interfaces, Some(&status));
 
         assert_eq!(info.addresses.len(), 3);
-        // ZeroTier entries come first, sorted by interface then address. Both
-        // live on feth2576 here, so the lower address leads.
-        assert_eq!(info.addresses[0].address, "192.168.195.252");
-        assert_eq!(info.addresses[0].interface, "feth2576");
-        assert_eq!(info.addresses[0].label, "ZeroTier a09acf02332a5b30");
-        assert!(info.addresses[0].zero_tier);
-        // The assigned address the interface list missed is added with the
-        // network's device name.
-        assert_eq!(info.addresses[1].address, "192.168.195.253");
-        assert_eq!(info.addresses[1].interface, "feth2576");
-        assert!(info.addresses[1].zero_tier);
-        // The plain LAN address stays last, labelled by its interface.
+        // The added entry uses the synthetic "utun" interface, which sorts
+        // before "utun6"; both are still Tailscale and come before the LAN.
+        assert_eq!(info.addresses[0].address, "100.125.242.29");
+        assert_eq!(info.addresses[0].interface, "utun");
+        assert_eq!(info.addresses[0].label, "Tailscale tail98fbab.ts.net");
+        assert!(info.addresses[0].tailscale);
+        assert_eq!(info.addresses[1].address, "100.125.242.28");
+        assert_eq!(info.addresses[1].interface, "utun6");
+        assert!(info.addresses[1].tailscale);
+        // The plain LAN address stays last.
         assert_eq!(info.addresses[2].address, "10.0.0.5");
         assert_eq!(info.addresses[2].label, "en0");
-        assert!(!info.addresses[2].zero_tier);
+        assert!(!info.addresses[2].tailscale);
 
-        let zero_tier = info.zero_tier.expect("network info");
-        assert_eq!(zero_tier.network_id, "a09acf02332a5b30");
-        assert_eq!(zero_tier.name, "test");
-        assert_eq!(zero_tier.status, "OK");
+        let tailscale = info.tailscale.expect("tailscale info");
+        assert_eq!(tailscale.tailnet, "tail98fbab.ts.net");
+        assert_eq!(tailscale.status, "Running");
+        assert_eq!(
+            tailscale.addresses,
+            vec!["100.125.242.28", "100.125.242.29"]
+        );
     }
 
     #[test]
-    fn sorts_zero_tier_first_then_interface_then_address_and_dedupes() {
+    fn sorts_tailscale_first_then_interface_then_address_and_dedupes() {
         let interfaces = vec![
             address("en0", "192.168.1.50"),
             address("en1", "192.168.1.60"),
             address("en0", "192.168.1.40"),
-            // The same address can appear on two interfaces with overlapping
-            // subnets; the list must not show it twice.
-            address("en2", "192.168.195.252"),
+            address("utun6", "100.125.242.28"),
             address("en3", "192.168.1.50"),
         ];
-        let networks = vec![network("zt", &["192.168.195.252"], "feth2576")];
-        let info = compose_network_info(interfaces, &networks);
+        let tailscale = status(&["100.125.242.28"], "tail98fbab.ts.net");
+        let info = compose_network_info(interfaces, Some(&tailscale));
 
         let ordered: Vec<&str> = info
             .addresses
@@ -391,7 +380,7 @@ mod tests {
         assert_eq!(
             ordered,
             vec![
-                "192.168.195.252",
+                "100.125.242.28",
                 "192.168.1.40",
                 "192.168.1.50",
                 "192.168.1.60"
@@ -401,10 +390,21 @@ mod tests {
     }
 
     #[test]
-    fn no_networks_means_plain_interfaces_and_no_info() {
+    #[ignore = "requires a running Tailscale client on this Mac"]
+    fn reads_live_tailscale_status() {
+        let status = tailscale_status().expect("Tailscale CLI should return a running status");
+        assert_eq!(status.status, "Running");
+        assert!(status
+            .assigned
+            .iter()
+            .any(|ip| ip.is_private() || ip.octets()[0] == 100));
+    }
+
+    #[test]
+    fn no_tailscale_means_plain_interfaces_and_no_info() {
         let interfaces = vec![address("en0", "10.0.0.5")];
-        let info = compose_network_info(interfaces, &[]);
-        assert!(info.zero_tier.is_none());
+        let info = compose_network_info(interfaces, None);
+        assert!(info.tailscale.is_none());
         assert_eq!(info.addresses.len(), 1);
         assert_eq!(info.addresses[0].label, "en0");
     }

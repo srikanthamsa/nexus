@@ -216,10 +216,7 @@ impl VirtualGamepad {
 
         let descriptor = CFData::from_buffer(&REPORT_DESCRIPTOR);
         let mut properties: CFMutableDictionary<CFString, CFType> = CFMutableDictionary::new();
-        properties.add(
-            &CFString::from("ReportDescriptor"),
-            &descriptor.as_CFType(),
-        );
+        properties.add(&CFString::from("ReportDescriptor"), &descriptor.as_CFType());
         properties.add(
             &CFString::from("Product"),
             &CFString::from(format!("ParsecPlus Virtual Gamepad {slot}").as_str()).as_CFType(),
@@ -253,12 +250,8 @@ impl VirtualGamepad {
             &CFNumber::from(0x05i32).as_CFType(),
         );
 
-        let raw = unsafe {
-            IOHIDUserDeviceCreate(
-                std::ptr::null(),
-                properties.as_concrete_TypeRef(),
-            )
-        };
+        let raw =
+            unsafe { IOHIDUserDeviceCreate(std::ptr::null(), properties.as_concrete_TypeRef()) };
         if raw.is_null() {
             return Err(
                 "macOS refused to create a virtual gamepad. The host app must be signed with \

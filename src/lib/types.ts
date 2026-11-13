@@ -324,22 +324,23 @@ export interface NativePublicAddress {
   localAddress: string;
 }
 
-export interface ZeroTierInfo {
-  networkId: string;
-  name: string;
+export interface TailscaleInfo {
+  tailnet: string;
+  hostName: string;
   status: string;
+  addresses: string[];
 }
 
 export interface NetworkAddress {
   interface: string;
   address: string;
   label: string;
-  zeroTier: boolean;
+  tailscale: boolean;
 }
 
 export interface NetworkInfo {
   addresses: NetworkAddress[];
-  zeroTier: ZeroTierInfo | null;
+  tailscale: TailscaleInfo | null;
 }
 
 /** Decoded contents of a `PC1-…` join code. */

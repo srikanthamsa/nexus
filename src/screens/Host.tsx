@@ -262,7 +262,7 @@ export function HostScreen({
   const mediaPort = clampMediaPort(host.mediaPort);
   const tcpPort = hostStatus?.summary?.port ?? DEFAULT_HOST_TCP_PORT;
   const shareAddresses = networkInfo?.addresses ?? [];
-  const zeroTier = networkInfo?.zeroTier ?? null;
+  const tailscale = networkInfo?.tailscale ?? null;
   const hostingCode = hostStatus?.summary?.code ?? "";
   const hostingPort = hostStatus?.summary?.port ?? DEFAULT_HOST_TCP_PORT;
   const relayMeta = relay
@@ -407,7 +407,7 @@ export function HostScreen({
       setNetworkLoading(false);
       if (!info) return;
       setNetworkInfo(info);
-      const preferred = info.addresses.find((entry) => entry.zeroTier) ?? info.addresses[0];
+      const preferred = info.addresses.find((entry) => entry.tailscale) ?? info.addresses[0];
       if (preferred) setSelectedAddress((current) => current || preferred.address);
     });
     return () => {
@@ -1046,7 +1046,7 @@ export function HostScreen({
               <span className="host-code__label">Direct connection</span>
               <span className="mini-chip">
                 <Link2 size={11} />
-                ZeroTier-ready
+                Tailscale-ready
               </span>
             </div>
             <div className={cn("host-code__value", (joinCodeLoading || !joinCode) && "is-loading")}>
@@ -1423,11 +1423,12 @@ export function HostScreen({
                   <span>One string carries this Mac's address, port, and reusable invite code.</span>
                 </div>
               </div>
-              {zeroTier ? (
+              {tailscale ? (
                 <p className="settings-note">
-                  ZeroTier <strong>{zeroTier.networkId}</strong> · {zeroTier.status}
+                  Tailscale <strong>{tailscale.tailnet || tailscale.hostName || "tailnet"}</strong>{" "}
+                  · {tailscale.status}
                   <br />
-                  Your friend must be on this ZeroTier network.
+                  Your friend must be on this Tailscale tailnet.
                 </p>
               ) : null}
               {shareAddresses.length > 0 ? (
@@ -1439,7 +1440,7 @@ export function HostScreen({
                     onChange={(event) => setSelectedAddress(event.target.value)}
                     options={shareAddresses.map((entry) => ({
                       value: entry.address,
-                      label: entry.zeroTier ? `${entry.label} · ZeroTier` : entry.label,
+                      label: entry.label,
                     }))}
                   />
                 </div>
