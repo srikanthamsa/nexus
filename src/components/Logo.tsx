@@ -1,9 +1,6 @@
-import { useId } from "react";
 import { cn } from "../lib/utils";
 
 export function LogoMark({ size = 24, className }: { size?: number; className?: string }) {
-  const rawId = useId();
-  const gradientId = `pp-mark-${rawId.replace(/:/g, "")}`;
   return (
     <svg
       className={cn("logo-mark", className)}
@@ -13,20 +10,7 @@ export function LogoMark({ size = 24, className }: { size?: number; className?: 
       fill="none"
       aria-hidden="true"
     >
-      <defs>
-        <linearGradient
-          id={gradientId}
-          x1="1"
-          y1="0"
-          x2="31"
-          y2="32"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor="var(--accent)" />
-          <stop offset="1" stopColor="var(--accent-2)" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9.5" fill={`url(#${gradientId})`} />
+      <rect width="32" height="32" rx="9.5" fill="var(--accent)" />
       <path
         d="M10.5 10.25 17.25 16l-6.75 5.75"
         stroke="white"

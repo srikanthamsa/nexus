@@ -1,4 +1,4 @@
-import { Gamepad2, Monitor, Radio, Settings, Users, UsersRound } from "lucide-react";
+import { Monitor, Radio, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Screen, User } from "../lib/types";
 import { cn } from "../lib/utils";
@@ -6,10 +6,7 @@ import { Avatar } from "./Avatar";
 
 const navigation: Array<{ screen: Screen; label: string; icon: ReactNode; badge?: string }> = [
   { screen: "computers", label: "Computers", icon: <Monitor size={19} /> },
-  { screen: "friends", label: "Friends", icon: <Users size={19} /> },
   { screen: "host", label: "Host", icon: <Radio size={19} /> },
-  { screen: "teams", label: "Teams", icon: <UsersRound size={19} /> },
-  { screen: "arcade", label: "Arcade", icon: <Gamepad2 size={19} />, badge: "SOON" },
 ];
 
 export function Rail({

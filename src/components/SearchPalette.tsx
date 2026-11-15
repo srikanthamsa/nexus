@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Gamepad2,
   Link2,
   Monitor,
   Radio,
   Search,
   SearchX,
   Settings,
-  Users,
-  UsersRound,
 } from "lucide-react";
 import { hotkeys } from "../lib/data";
 import { useApp } from "../lib/store";
@@ -19,10 +16,7 @@ import { TextField } from "./TextField";
 
 const jumpTargets: Array<{ screen: Screen; label: string; icon: React.ReactNode }> = [
   { screen: "computers", label: "Computers", icon: <Monitor size={16} /> },
-  { screen: "friends", label: "Friends", icon: <Users size={16} /> },
   { screen: "host", label: "Host settings", icon: <Radio size={16} /> },
-  { screen: "teams", label: "Teams", icon: <UsersRound size={16} /> },
-  { screen: "arcade", label: "Arcade", icon: <Gamepad2 size={16} /> },
   { screen: "settings", label: "Settings", icon: <Settings size={16} /> },
 ];
 

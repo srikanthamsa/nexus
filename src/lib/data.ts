@@ -29,7 +29,7 @@ export const seedData: AppData = {
     reduceMotion: false,
     compact: false,
     alwaysOnTop: false,
-    showStats: true,
+    showStats: false,
     autoConnect: false,
     decoder: "auto",
     audioOutput: "MacBook Pro Speakers",

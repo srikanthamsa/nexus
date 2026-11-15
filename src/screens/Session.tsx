@@ -73,7 +73,7 @@ export function SessionScreen({
     : remote?.hostName || remoteLabel || "Direct session";
   const [elapsed, setElapsed] = useState(0);
   const [samples, setSamples] = useState<number[]>([]);
-  const [statsOpen, setStatsOpen] = useState(data.settings.showStats);
+  const [statsOpen, setStatsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hudVisible, setHudVisible] = useState(true);
   const [fullscreen, setFullscreenState] = useState(false);
@@ -640,16 +640,14 @@ export function SessionScreen({
                   <MonitorPlay size={24} />
                 </span>
                 <p>Waiting for {sessionName}</p>
-                <span>
-                  The encrypted channel is open. The first hardware-decoded frame is on its way.
-                </span>
+                <span>Your friend's screen will appear here.</span>
               </div>
             ) : null}
 
             {!remoteInput && (
               <span className="remote-stage__hint">
                 <MousePointer2 size={12} />
-                View only · enable remote input on the host
+                You're watching. The host can let you control this Mac.
               </span>
             )}
 
@@ -660,35 +658,8 @@ export function SessionScreen({
               </span>
               <span className="live-stage__display">{remote.hostName}</span>
               <span className="live-stage__spec">
-                {remote.path === "relay" ? remote.peer.replace(/^relay:/, "") : remote.peer}
-              </span>
-              <span className="live-stage__spec">
-                {remote.transport === "webrtc" ? "WebRTC · UDP" : "TCP"}
-              </span>
-              <span className="live-stage__spec">
                 {stageWidth} × {stageHeight}
               </span>
-              {remoteStats ? (
-                <>
-                  <span className="live-stage__spec">{Math.round(displayFps)} fps</span>
-                  <span className="live-stage__spec">{Math.round(displayLatency)} ms RTT</span>
-                  <span
-                    className="live-stage__spec"
-                    title={
-                      remoteStats.adaptive
-                        ? `Adaptive target ${remoteStats.streamMbps.toFixed(0)} of ${remoteStats.ceilingMbps.toFixed(0)} Mbps`
-                        : undefined
-                    }
-                  >
-                    {displayBitrate.toFixed(1)} Mbps
-                  </span>
-                </>
-              ) : (
-                <span className="live-stage__spec live-stage__warming">
-                  <Loader2 size={11} className="spin" />
-                  Negotiating video
-                </span>
-              )}
               <span className={cn("live-stage__local", !remoteInput && "is-muted")}>
                 {remoteInput ? "Control" : "View only"}
               </span>
@@ -754,29 +725,6 @@ export function SessionScreen({
                 {remoteInput ? "Control" : "View only"}
               </span>
             )}
-          </div>
-          <div className="session-hud__metrics">
-            <span
-              title={
-                remoteMode
-                  ? "Round-trip latency over the encrypted channel"
-                  : "Hardware encode time"
-              }
-            >
-              <Activity size={13} />
-              {remoteMode ? `${Math.round(displayLatency)} ms` : `${displayLatency.toFixed(1)} ms`}
-            </span>
-            <span>{Math.round(displayFps)} fps</span>
-            <span
-              className="session-hud__bitrate"
-              title={
-                remoteMode && remoteStats?.adaptive
-                  ? `Adaptive ${remoteStats.streamMbps.toFixed(0)} of ${remoteStats.ceilingMbps.toFixed(0)} Mbps`
-                  : undefined
-              }
-            >
-              {displayBitrate.toFixed(1)} Mbps
-            </span>
           </div>
           <div className="session-hud__actions">
             <button

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
-  Globe2,
   KeyRound,
   Link2,
   Monitor,
@@ -233,7 +232,7 @@ export function DirectConnectModal({
         if (!busy) onClose();
       }}
       title="Connect directly"
-      description="Send a join request with an invite code, a nearby computer, or a relay invite. The host approves before streaming starts."
+      description="Enter the code from the host. They approve the connection before it starts."
       size="sm"
       footer={
         <>
@@ -267,9 +266,8 @@ export function DirectConnectModal({
             if (!busy) setMode(value);
           }}
           options={[
-            { value: "join", label: "Invite code", icon: <KeyRound size={13} /> },
-            { value: "nearby", label: "Nearby", icon: <Radar size={13} /> },
-            { value: "relay", label: "Relay invite", icon: <Globe2 size={13} /> },
+            { value: "join", label: "Connection code", icon: <KeyRound size={13} /> },
+            { value: "nearby", label: "Address", icon: <Radar size={13} /> },
           ]}
         />
 
@@ -278,7 +276,7 @@ export function DirectConnectModal({
             <>
               <TextField
                 autoFocus
-                label="Invite code"
+                label="Connection code"
                 placeholder="PC1-…"
                 value={joinInput}
                 spellCheck={false}
@@ -291,7 +289,7 @@ export function DirectConnectModal({
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && canSubmit) void submit();
                 }}
-                hint="Paste the code from the host's Host → Network screen. Your friend approves the connection before streaming starts."
+                hint="Paste the code from the host. They approve the connection before it starts."
                 error={error ?? undefined}
               />
 
@@ -300,7 +298,7 @@ export function DirectConnectModal({
                   <ShieldCheck size={17} />
                 </span>
                 <div>
-                  <p>Tailscale-ready</p>
+                  <p>Ready to connect</p>
                   <span>
                     The code carries the host's address, port, and invite code. Your
                     friend approves the connection before streaming starts.
@@ -326,7 +324,7 @@ export function DirectConnectModal({
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && isValidPairCode(code)) void submit();
                 }}
-                hint="IP address or hostname with an optional port. Defaults to 39200. For the internet, enter the host's public IP (host:port) and configure STUN/TURN in Settings → Network when a direct LAN path is not available."
+                hint="Enter the address from the host. It looks like 100.x.x.x or a local address."
               />
 
               <div className="nearby">
@@ -493,7 +491,7 @@ export function DirectConnectModal({
 
           <div className="code-entry__security">
             <ShieldCheck size={15} />
-            <span>Noise XX handshake · ChaCha20-Poly1305 · end-to-end encrypted.</span>
+            <span>Private connection.</span>
           </div>
 
           {busy && waiting && (
@@ -505,7 +503,7 @@ export function DirectConnectModal({
 
         {!native && (
           <p className="direct-connect__fallback">
-            Invite codes, nearby discovery, and relay sessions need the native macOS build.
+            Connecting needs the desktop app.
           </p>
         )}
       </div>

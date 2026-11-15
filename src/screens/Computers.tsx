@@ -64,7 +64,7 @@ function SavedCard({
       <div className="computer-card__specs">
         <span>
           <Link2 size={12} />
-          {entry.transport === "relay" ? "Relay path" : "Direct path"}
+          {entry.transport === "relay" ? "Relay" : "Direct"}
         </span>
         {entry.width && entry.height ? (
           <span>
@@ -221,7 +221,7 @@ export function ComputersScreen({
               </span>
               <span className="add-computer-card__title">Add a computer</span>
               <span className="add-computer-card__copy">
-                Link a machine with an invite code or a direct connection string.
+                Connect with a code from another Mac.
               </span>
             </button>
           </div>
@@ -263,7 +263,7 @@ export function ComputersScreen({
               <p>
                 {filter === "favorites"
                   ? "Star a saved connection to keep it here."
-                  : "A computer appears here after your first real session. Reconnect next time without retyping the invite code."}
+                  : "Computers you connect to will appear here. Reconnect without typing a code again."}
               </p>
               <div className="empty-state__actions">
                 <Button

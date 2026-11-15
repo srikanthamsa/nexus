@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  Check,
   Copy,
   Info,
   Keyboard,
@@ -8,10 +7,8 @@ import {
   Monitor,
   Palette,
   ShieldCheck,
-  SlidersHorizontal,
   Trash2,
   User,
-  Wifi,
 } from "lucide-react";
 import { Avatar } from "../components/Avatar";
 import { Button } from "../components/Button";
@@ -19,37 +16,31 @@ import { Kbd } from "../components/Kbd";
 import { LogoMark } from "../components/Logo";
 import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
-import { Segmented } from "../components/Segmented";
-import { Select } from "../components/Select";
 import { TextField } from "../components/TextField";
 import { Toggle } from "../components/Toggle";
 import { useToast } from "../components/Toast";
-import { accents, hotkeys } from "../lib/data";
+import { hotkeys } from "../lib/data";
 import { getSystemInfo, setAlwaysOnTop } from "../lib/native";
 import { useApp } from "../lib/store";
-import type { Accent, SystemInfo } from "../lib/types";
+import type { SystemInfo } from "../lib/types";
 import { cn, copyToClipboard } from "../lib/utils";
 
-type TabId = "account" | "appearance" | "hotkeys" | "network" | "advanced" | "about";
+type TabId = "account" | "appearance" | "shortcuts" | "about";
 
 const tabs: Array<{ id: TabId; label: string; icon: ReactNode }> = [
-  { id: "account", label: "Account", icon: <User size={16} /> },
+  { id: "account", label: "Profile", icon: <User size={16} /> },
   { id: "appearance", label: "Appearance", icon: <Palette size={16} /> },
-  { id: "hotkeys", label: "Hotkeys", icon: <Keyboard size={16} /> },
-  { id: "network", label: "Network", icon: <Wifi size={16} /> },
-  { id: "advanced", label: "Advanced", icon: <SlidersHorizontal size={16} /> },
+  { id: "shortcuts", label: "Shortcuts", icon: <Keyboard size={16} /> },
   { id: "about", label: "About", icon: <Info size={16} /> },
 ];
 
 function SettingsSection({
   title,
   description,
-  actions,
   children,
 }: {
   title: string;
   description?: string;
-  actions?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -59,7 +50,6 @@ function SettingsSection({
           <h2>{title}</h2>
           {description && <p>{description}</p>}
         </div>
-        {actions}
       </div>
       <div className="settings-panel__body">{children}</div>
     </section>
@@ -93,8 +83,8 @@ export function SettingsScreen() {
   const [draftName, setDraftName] = useState(data.user?.name ?? "");
   const [nameError, setNameError] = useState<string>();
   const [resetOpen, setResetOpen] = useState(false);
-  const NAME_LIMIT = 20;
   const [system, setSystem] = useState<SystemInfo | null>(null);
+  const NAME_LIMIT = 20;
 
   const user = data.user;
 
@@ -143,10 +133,7 @@ export function SettingsScreen() {
 
   return (
     <div className="screen">
-      <PageHeader
-        title="Settings"
-        description="Shape ParsecPlus around how you work."
-      />
+      <PageHeader title="Settings" description="Your profile and this Mac." />
 
       <div className="settings-layout">
         <nav className="settings-nav" aria-label="Settings sections">
@@ -166,7 +153,7 @@ export function SettingsScreen() {
             <Avatar name={user.name} size={28} presence="online" />
             <div>
               <p>{user.name}</p>
-              <span>Local profile</span>
+              <span>This Mac</span>
             </div>
           </div>
         </nav>
@@ -175,19 +162,15 @@ export function SettingsScreen() {
           {tab === "account" && (
             <>
               <SettingsSection
-                title="Local profile"
-                description="This profile stays on this Mac. No account needed."
+                title="Profile"
+                description="Shown to people you connect with. It stays on this Mac."
               >
                 <div className="profile-card">
                   <Avatar name={user.name} size={62} presence="online" />
                   <div className="profile-card__copy">
                     <p>{user.name}</p>
-                    <span>
-                      Local profile · no account
-                      {system ? ` · ${system.os}` : ""}
-                    </span>
+                    <span>{system ? `${system.os} ${system.osVersion}`.trim() : "This Mac"}</span>
                   </div>
-                  <span className="chip">This Mac</span>
                 </div>
 
                 <div className="settings-form">
@@ -209,9 +192,7 @@ export function SettingsScreen() {
                   />
                 </div>
                 <div className="settings-actions">
-                  <span className="settings-note">
-                    Shown on this Mac and in the host dock when someone connects.
-                  </span>
+                  <span className="settings-note">Used on this Mac and in the Host screen.</span>
                   <Button variant="primary" onClick={saveProfile}>
                     Save name
                   </Button>
@@ -220,8 +201,8 @@ export function SettingsScreen() {
 
               <SettingsSection title="Session">
                 <SettingsRow
-                  title="Sign out of ParsecPlus"
-                  description="Returns to the local setup screen. Your preferences stay on this Mac."
+                  title="Sign out"
+                  description="Returns to the setup screen. Your saved computers stay."
                 >
                   <Button
                     variant="ghost"
@@ -239,106 +220,41 @@ export function SettingsScreen() {
           )}
 
           {tab === "appearance" && (
-            <>
-              <SettingsSection
-                title="Accent"
-                description="Tint highlights, controls, and the session HUD."
+            <SettingsSection title="Interface">
+              <SettingsRow title="Compact layout" description="Fits more on smaller screens.">
+                <Toggle
+                  checked={data.settings.compact}
+                  onChange={(value) => updateSettings({ compact: value })}
+                  label="Compact layout"
+                />
+              </SettingsRow>
+              <SettingsRow title="Reduce motion" description="Turns off animation.">
+                <Toggle
+                  checked={data.settings.reduceMotion}
+                  onChange={(value) => updateSettings({ reduceMotion: value })}
+                  label="Reduce motion"
+                />
+              </SettingsRow>
+              <SettingsRow
+                title="Keep window on top"
+                description="Stays above other apps while you play."
               >
-                <div className="accent-grid">
-                  {accents.map((accent) => (
-                    <button
-                      key={accent.id}
-                      type="button"
-                      className={cn(
-                        "accent-swatch",
-                        data.settings.accent === accent.id && "is-active",
-                      )}
-                      onClick={() => updateSettings({ accent: accent.id as Accent })}
-                      aria-pressed={data.settings.accent === accent.id}
-                    >
-                      <span
-                        className="accent-swatch__orb"
-                        style={{
-                          background: `linear-gradient(135deg, ${accent.colors[0]}, ${accent.colors[1]})`,
-                        }}
-                      >
-                        {data.settings.accent === accent.id && <Check size={16} />}
-                      </span>
-                      <span className="accent-swatch__label">{accent.label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="appearance-preview">
-                  <div className="appearance-preview__bar">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                  <div className="appearance-preview__body">
-                    <span className="appearance-preview__tile" />
-                    <div className="appearance-preview__copy">
-                      <span className="appearance-preview__line" />
-                      <span className="appearance-preview__line is-short" />
-                    </div>
-                    <span className="appearance-preview__button">Connect</span>
-                  </div>
-                </div>
-              </SettingsSection>
-
-              <SettingsSection title="Interface">
-                <SettingsRow
-                  title="Compact density"
-                  description="Tighter spacing for smaller displays."
-                >
-                  <Toggle
-                    checked={data.settings.compact}
-                    onChange={(value) => updateSettings({ compact: value })}
-                    label="Compact density"
-                  />
-                </SettingsRow>
-                <SettingsRow
-                  title="Reduce motion"
-                  description="Remove transitions and ambient animation."
-                >
-                  <Toggle
-                    checked={data.settings.reduceMotion}
-                    onChange={(value) => updateSettings({ reduceMotion: value })}
-                    label="Reduce motion"
-                  />
-                </SettingsRow>
-                <SettingsRow
-                  title="Always on top"
-                  description="Keep the ParsecPlus window above other apps."
-                >
-                  <Toggle
-                    checked={data.settings.alwaysOnTop}
-                    onChange={(value) => {
-                      updateSettings({ alwaysOnTop: value });
-                      void setAlwaysOnTop(value);
-                    }}
-                    label="Always on top"
-                  />
-                </SettingsRow>
-                <SettingsRow
-                  title="Show performance stats"
-                  description="Start each session with the stats panel open."
-                >
-                  <Toggle
-                    checked={data.settings.showStats}
-                    onChange={(value) => updateSettings({ showStats: value })}
-                    label="Show performance stats"
-                  />
-                </SettingsRow>
-              </SettingsSection>
-            </>
+                <Toggle
+                  checked={data.settings.alwaysOnTop}
+                  onChange={(value) => {
+                    updateSettings({ alwaysOnTop: value });
+                    void setAlwaysOnTop(value);
+                  }}
+                  label="Keep window on top"
+                />
+              </SettingsRow>
+            </SettingsSection>
           )}
 
-          {tab === "hotkeys" && (
+          {tab === "shortcuts" && (
             <SettingsSection
-              title="Hotkeys"
-              description="Global shortcuts during a remote session."
-              actions={<span className="chip">System shortcuts</span>}
+              title="Keyboard shortcuts"
+              description="These work during a session."
             >
               <div className="hotkey-list">
                 {hotkeys.map((hotkey) => (
@@ -352,179 +268,26 @@ export function SettingsScreen() {
                   </div>
                 ))}
               </div>
-              <p className="settings-note">
-                Custom key bindings and per-app profiles are planned for a later phase.
-              </p>
             </SettingsSection>
-          )}
-
-          {tab === "network" && (
-            <>
-              <SettingsSection
-                title="Connection preference"
-                description="Direct paths are fastest. Relay is the dependable fallback."
-              >
-                <Segmented
-                  value="auto"
-                  onChange={() => {}}
-                  ariaLabel="Connection preference"
-                  disabled
-                  options={[{ value: "auto", label: "Auto (direct, then relay)" }]}
-                />
-                <SettingsRow
-                  title="Bandwidth limit · planned"
-                  description="Manual caps are not wired; use the Host bitrate presets for now."
-                >
-                  <Toggle
-                    checked={false}
-                    disabled
-                    onChange={() => {}}
-                    label="Bandwidth limit (planned)"
-                  />
-                </SettingsRow>
-                <p className="settings-note">
-                  Transport selection stays automatic. Per-session bitrate is configured under
-                  Host → Video.
-                </p>
-              </SettingsSection>
-
-              <SettingsSection
-                title="NAT traversal (STUN/TURN)"
-                description="Find a direct UDP path across the internet. Applies to hosting and connecting."
-              >
-                <div className="settings-form settings-form--two">
-                  <TextField
-                    id="ice-stun-urls"
-                    label="STUN servers"
-                    placeholder="stun:stun.l.google.com:19302, stun:stun.cloudflare.com:3478"
-                    value={data.settings.iceStunUrls}
-                    spellCheck={false}
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    onChange={(event) => updateSettings({ iceStunUrls: event.target.value })}
-                    hint="Comma or space separated. Empty by default, so no third party is contacted."
-                  />
-                  <TextField
-                    id="ice-turn-urls"
-                    label="TURN servers"
-                    placeholder="turn:your-server:3478"
-                    value={data.settings.iceTurnUrls}
-                    spellCheck={false}
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    onChange={(event) => updateSettings({ iceTurnUrls: event.target.value })}
-                    hint="Only needed when direct UDP fails; TURN relays encrypted media."
-                  />
-                  <TextField
-                    id="ice-turn-username"
-                    label="TURN username"
-                    value={data.settings.iceTurnUsername}
-                    autoComplete="off"
-                    spellCheck={false}
-                    onChange={(event) => updateSettings({ iceTurnUsername: event.target.value })}
-                  />
-                  <TextField
-                    id="ice-turn-credential"
-                    label="TURN credential"
-                    type="password"
-                    value={data.settings.iceTurnCredential}
-                    autoComplete="off"
-                    spellCheck={false}
-                    onChange={(event) => updateSettings({ iceTurnCredential: event.target.value })}
-                  />
-                </div>
-                <p className="settings-note">
-                  A public STUN server reveals your IP address to that server. TURN relays
-                  encrypted media and is only needed when direct UDP fails. The same servers are
-                  used for hosting and connecting.
-                </p>
-              </SettingsSection>
-            </>
-          )}
-
-          {tab === "advanced" && (
-            <>
-              <SettingsSection title="Streaming">
-                <div className="settings-form settings-form--narrow">
-                  <Select
-                    id="decoder"
-                    label="Video decoder"
-                    value="auto"
-                    onChange={() => {}}
-                    options={[{ value: "auto", label: "Auto (hardware HEVC)" }]}
-                    hint="Hardware HEVC is the only decoder in this build; fallbacks are planned."
-                  />
-                </div>
-                <SettingsRow
-                  title="Stats overlay by default"
-                  description="Show live latency and bitrate during sessions."
-                >
-                  <Toggle
-                    checked={data.settings.showStats}
-                    onChange={(value) => updateSettings({ showStats: value })}
-                    label="Stats overlay by default"
-                  />
-                </SettingsRow>
-              </SettingsSection>
-
-              <SettingsSection title="Diagnostics & data">
-                <SettingsRow
-                  title="Copy diagnostics"
-                  description="Platform details and preview settings for support."
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    leftIcon={<Copy size={14} />}
-                    onClick={() => void copyDiagnostics()}
-                  >
-                    Copy
-                  </Button>
-                </SettingsRow>
-                <SettingsRow
-                  title="Reset local data"
-                  description="Clear this local profile, preferences, and recent connections."
-                >
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    leftIcon={<Trash2 size={14} />}
-                    onClick={() => setResetOpen(true)}
-                  >
-                    Reset
-                  </Button>
-                </SettingsRow>
-              </SettingsSection>
-            </>
           )}
 
           {tab === "about" && (
             <>
-              <SettingsSection
-                title="ParsecPlus"
-                description="Fast, private access to every computer you own."
-              >
+              <SettingsSection title="ParsecPlus" description="Remote access for your Mac.">
                 <div className="about-hero">
                   <div className="about-hero__mark">
                     <LogoMark size={26} />
                   </div>
                   <div className="about-hero__copy">
                     <p>ParsecPlus</p>
-                    <span>
-                      {system?.appVersion ?? "0.1.0"} · macOS · Phase 1
-                    </span>
+                    <span>{system?.appVersion ?? "0.1.0"} · macOS</span>
                   </div>
-                  <span className="chip">Clean-room build</span>
                 </div>
 
                 <div className="about-grid">
                   <div>
-                    <span>Platform</span>
+                    <span>System</span>
                     <strong>{system ? `${system.os} ${system.osVersion}`.trim() : "—"}</strong>
-                  </div>
-                  <div>
-                    <span>Architecture</span>
-                    <strong>{system?.arch ?? "—"}</strong>
                   </div>
                   <div>
                     <span>Device</span>
@@ -542,27 +305,38 @@ export function SettingsScreen() {
                     leftIcon={<Copy size={15} />}
                     onClick={() => void copyDiagnostics()}
                   >
-                    Copy diagnostics
+                    Copy app info
                   </Button>
                 </div>
               </SettingsSection>
 
-              <SettingsSection title="Project">
+              <SettingsSection title="This Mac">
+                <SettingsRow
+                  title="Reset local data"
+                  description="Clears your profile, settings and saved computers."
+                >
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    leftIcon={<Trash2 size={14} />}
+                    onClick={() => setResetOpen(true)}
+                  >
+                    Reset
+                  </Button>
+                </SettingsRow>
+              </SettingsSection>
+
+              <SettingsSection title="About this project">
                 <div className="about-note">
                   <ShieldCheck size={18} />
                   <p>
-                    ParsecPlus is an independent clean-room project. It is not affiliated with,
-                    endorsed by, or derived from Parsec Technologies. All interface design and
-                    code are original.
+                    ParsecPlus is an independent, clean-room project. It is not affiliated with
+                    Parsec Technologies.
                   </p>
                 </div>
                 <div className="about-note">
                   <Monitor size={18} />
-                  <p>
-                    Native host control, live preview, direct sessions, invite codes, STUN/TURN, and
-                    relay fallback are implemented on macOS. Accounts, friends, and teams arrive
-                    in later phases.
-                  </p>
+                  <p>Built for macOS. Friends can connect from another ParsecPlus install.</p>
                 </div>
               </SettingsSection>
             </>
@@ -573,8 +347,8 @@ export function SettingsScreen() {
       <Modal
         open={resetOpen}
         onClose={() => setResetOpen(false)}
-        title="Reset this Mac's profile?"
-        description="Clears the local profile, preferences, and recent connections on this device."
+        title="Reset this Mac?"
+        description="Clears your profile, settings and saved computers."
         size="sm"
         footer={
           <>
@@ -591,7 +365,7 @@ export function SettingsScreen() {
                   push({ title: "Local data reset", tone: "default" });
                 }}
               >
-                Reset local data
+                Reset
               </Button>
             </div>
           </>
@@ -601,7 +375,7 @@ export function SettingsScreen() {
           <Trash2 size={18} />
         </div>
         <p className="confirm-copy">
-          ParsecPlus returns to its first-run state and you’ll be asked to set up this Mac again.
+          ParsecPlus returns to setup and asks you to name this Mac again.
         </p>
       </Modal>
     </div>

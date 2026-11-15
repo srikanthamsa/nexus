@@ -1,18 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  Activity,
   AlertTriangle,
   Check,
   Clipboard,
   Copy,
-  Cpu,
-  FolderUp,
   Gamepad2,
-  Gauge,
-  Globe2,
   Info,
   Keyboard,
-  Link2,
   LockKeyhole,
   Monitor,
   MonitorUp,
@@ -20,23 +14,15 @@ import {
   Play,
   Radio,
   RefreshCw,
-  Router,
   ShieldCheck,
-  SlidersHorizontal,
-  Users,
-  Volume2,
-  Wifi,
 } from "lucide-react";
 import { Button } from "../components/Button";
 import { PageHeader } from "../components/PageHeader";
-import { Segmented } from "../components/Segmented";
 import { Select } from "../components/Select";
-import { TextField } from "../components/TextField";
 import { Toggle } from "../components/Toggle";
 import { useToast } from "../components/Toast";
 import {
   buildIceSettings,
-  discoverPublicAddress,
   listNativeDisplays,
   getNativeHostStatus,
   getNativePermissions,
@@ -62,19 +48,14 @@ import type {
   NativeDisplayInfo,
   NativeDisplaySize,
   NativeHostStatus,
-  NativePublicAddress,
-  NativeRelayState,
-  NetworkInfo,
   PermissionKind,
   PermissionState,
   SystemInfo,
 } from "../lib/types";
-import { cn, copyToClipboard, formatDuration, friendlyDeviceName } from "../lib/utils";
+import { cn, copyToClipboard, friendlyDeviceName } from "../lib/utils";
 
 const DEFAULT_HOST_TCP_PORT = 39200;
 const DEFAULT_MEDIA_PORT = 39201;
-const DEFAULT_PUBLIC_STUN = "stun:stun.l.google.com:19302";
-const BITRATE_PRESETS = [8, 12, 20, 35] as const;
 const MATCH_CAPTURE_WIDTH = 1920;
 
 /**
@@ -95,13 +76,6 @@ function matchCaptureDimensions(size: NativeDisplaySize): { width: number; heigh
 function clampMediaPort(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_MEDIA_PORT;
   return Math.min(65535, Math.max(1024, Math.trunc(value)));
-}
-
-function firstServer(value: string): string | undefined {
-  return value
-    .split(/[\s,]+/)
-    .map((entry) => entry.trim())
-    .find(Boolean);
 }
 
 function Panel({
@@ -173,21 +147,21 @@ const permissionMeta: Array<{
     kind: "screen",
     key: "screenRecording",
     title: "Screen Recording",
-    description: "Required to capture and encode this display.",
+    description: "Required to share this screen.",
     required: true,
   },
   {
     kind: "accessibility",
     key: "accessibility",
     title: "Accessibility",
-    description: "Lets visitors control the pointer and keyboard.",
+    description: "Lets friends control the pointer and keyboard.",
     required: true,
   },
   {
     kind: "input",
     key: "inputMonitoring",
     title: "Input Monitoring",
-    description: "Recommended for gamepads and low-level input.",
+    description: "Helps controllers work.",
     required: false,
   },
 ];
@@ -204,13 +178,6 @@ function captureDimensions(resolution: HostSettings["resolution"]) {
   return { width: 1920, height: 1080 };
 }
 
-function relayStateLabel(state: NativeRelayState): string {
-  if (state === "connecting") return "Connecting";
-  if (state === "waiting") return "Waiting";
-  if (state === "paired") return "Connected";
-  return "Offline";
-}
-
 export function HostScreen({
   onStartPreview,
 }: {
@@ -219,10 +186,8 @@ export function HostScreen({
   const { data, updateHost } = useApp();
   const { push } = useToast();
   const [system, setSystem] = useState<SystemInfo | null>(null);
-  const [nativeAvailable, setNativeAvailable] = useState(false);
   const [perms, setPerms] = useState<PermissionState>(data.permissions);
   const [granting, setGranting] = useState<PermissionKind | null>(null);
-  const [pairCode, setPairCode] = useState("");
   const [codeLoading, setCodeLoading] = useState(true);
   const [previewStarting, setPreviewStarting] = useState(false);
   const [hostStatus, setHostStatus] = useState<NativeHostStatus | null>(null);
@@ -231,11 +196,6 @@ export function HostScreen({
   const [displayLoading, setDisplayLoading] = useState(false);
   const [displayError, setDisplayError] = useState<string | null>(null);
   const [allowRemoteInput, setAllowRemoteInput] = useState(false);
-  const [detectingAddress, setDetectingAddress] = useState(false);
-  const [publicAddress, setPublicAddress] = useState<NativePublicAddress | null>(null);
-  const [detectError, setDetectError] = useState<string | null>(null);
-  const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null);
-  const [networkLoading, setNetworkLoading] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [joinCodeLoading, setJoinCodeLoading] = useState(false);
@@ -246,47 +206,11 @@ export function HostScreen({
   const hostRunning = native ? Boolean(hostStatus?.running) : host.hosting;
   const viewers = hostStatus?.viewers ?? [];
   const pendingRequests = hostStatus?.pending ?? [];
-  const primaryViewer = viewers[0] ?? null;
   const hostError = native ? hostStatus?.lastError ?? null : null;
-  const relay = native ? hostStatus?.summary?.relay ?? null : null;
-  const nearbyAdvertised = native ? Boolean(hostStatus?.summary?.nearby) : false;
-  const route =
-    viewers.length > 0
-      ? relay?.state === "paired"
-        ? "Relay"
-        : "Direct"
-      : hostRunning
-        ? "Listening"
-        : "Idle";
-  const relayAddress = host.relayAddress.trim();
   const mediaPort = clampMediaPort(host.mediaPort);
-  const tcpPort = hostStatus?.summary?.port ?? DEFAULT_HOST_TCP_PORT;
-  const shareAddresses = networkInfo?.addresses ?? [];
-  const tailscale = networkInfo?.tailscale ?? null;
   const hostingCode = hostStatus?.summary?.code ?? "";
   const hostingPort = hostStatus?.summary?.port ?? DEFAULT_HOST_TCP_PORT;
-  const relayMeta = relay
-    ? relayStateLabel(relay.state)
-    : host.relayFallback
-      ? relayAddress
-        ? hostRunning
-          ? "Not started"
-          : "Ready"
-        : "No address"
-      : "Off";
-  const matchDimensions = displaySize ? matchCaptureDimensions(displaySize) : null;
-  const resolutionLabel =
-    host.resolution === "match"
-      ? matchDimensions
-        ? `${matchDimensions.width} × ${matchDimensions.height}`
-        : "Native display"
-      : host.resolution.replace("x", " × ");
-  const bitrateOptions = [
-    ...BITRATE_PRESETS.map((preset) => ({ value: String(preset), label: `${preset} Mbps` })),
-    ...((BITRATE_PRESETS as readonly number[]).includes(host.bitrate)
-      ? []
-      : [{ value: String(host.bitrate), label: `Custom ${host.bitrate} Mbps` }]),
-  ];
+
 
   useEffect(() => {
     let cancelled = false;
@@ -309,7 +233,6 @@ export function HostScreen({
       setHostStatus(status);
       setAllowRemoteInput(status.allowInput);
       updateHost({ hosting: status.running, requireApproval: status.requireApproval });
-      if (status.running && status.summary) setPairCode(status.summary.code);
     };
 
     void subscribeNativeHost({ onStatus: apply }).then((stop) => {
@@ -320,7 +243,6 @@ export function HostScreen({
     void getNativeHostStatus().then((status) => {
       if (cancelled || !status) return;
       apply(status);
-      if (!status.running) setPairCode("");
     });
 
     return () => {
@@ -383,10 +305,8 @@ export function HostScreen({
       const fresh = await getNativePermissions();
       if (cancelled) return;
       if (fresh) {
-        setNativeAvailable(true);
         setPerms(fresh);
       } else {
-        setNativeAvailable(false);
         setPerms(data.permissions);
       }
     };
@@ -401,12 +321,9 @@ export function HostScreen({
 
   useEffect(() => {
     let cancelled = false;
-    setNetworkLoading(true);
     void listNativeNetworkAddresses().then((info) => {
       if (cancelled) return;
-      setNetworkLoading(false);
       if (!info) return;
-      setNetworkInfo(info);
       const preferred = info.addresses.find((entry) => entry.tailscale) ?? info.addresses[0];
       if (preferred) setSelectedAddress((current) => current || preferred.address);
     });
@@ -452,7 +369,7 @@ export function HostScreen({
       push({
         title: "Hosting needs the desktop app",
         description:
-          "Run the Tauri build to open the encrypted listener, issue invite codes, and accept direct sessions.",
+          "Start hosting from the desktop app.",
         tone: "info",
       });
       void value;
@@ -476,7 +393,7 @@ export function HostScreen({
         requireApproval: host.requireApproval,
         gamepad: host.gamepad,
         adaptiveBitrate: host.adaptNetwork,
-        relayAddress: host.relayFallback && relayAddress ? relayAddress : undefined,
+        relayAddress: undefined,
         ice: buildIceSettings(data.settings),
         mediaPort,
       });
@@ -491,7 +408,6 @@ export function HostScreen({
       }
       setHostStatus(status);
       setAllowRemoteInput(status.allowInput);
-      if (status.summary) setPairCode(status.summary.code);
       updateHost({ hosting: true });
       push({
         title: "Hosting enabled",
@@ -514,11 +430,10 @@ export function HostScreen({
     const status = await stopNativeHost();
     setHostStatus(status);
     setAllowRemoteInput(false);
-    setPairCode("");
     updateHost({ hosting: false });
     push({
       title: "Hosting stopped",
-      description: "The listener is closed and the current code no longer works.",
+      description: "Remote access is off. The old code no longer works.",
       tone: "default",
     });
   };
@@ -568,36 +483,12 @@ export function HostScreen({
     }
   };
 
-  const detectPublicAddress = async () => {
-    setDetectingAddress(true);
-    setDetectError(null);
-    setPublicAddress(null);
-    const stunUrl = firstServer(data.settings.iceStunUrls) ?? DEFAULT_PUBLIC_STUN;
-    const result = await discoverPublicAddress(stunUrl, mediaPort);
-    setDetectingAddress(false);
-    if (!result.ok) {
-      setDetectError(result.error);
-      push({
-        title: "Could not detect public address",
-        description: result.error,
-        tone: "error",
-      });
-      return;
-    }
-    setPublicAddress(result.value);
-    push({
-      title: "Public address discovered",
-      description: `Public IP ${result.value.address}; your friend connects to ${result.value.address}:${tcpPort}.`,
-      tone: "success",
-    });
-  };
-
   const regenerateCode = async () => {
     if (native) {
       if (!hostRunning) {
         push({
           title: "Start hosting first",
-          description: "The listener issues the invite code.",
+          description: "A code appears after hosting starts.",
           tone: "info",
         });
         return;
@@ -607,7 +498,6 @@ export function HostScreen({
       setCodeLoading(false);
       if (result.status) {
         setHostStatus(result.status);
-        if (result.status.summary) setPairCode(result.status.summary.code);
         push({ title: "New invite code ready", tone: "success" });
       } else {
         push({
@@ -621,7 +511,7 @@ export function HostScreen({
 
     setCodeLoading(true);
     push({
-      title: "Invite codes come from the host listener",
+      title: "Start hosting for a code",
       description: "Run the desktop app and start hosting to rotate a real code.",
       tone: "info",
     });
@@ -641,38 +531,6 @@ export function HostScreen({
       title: "Direct connection copied",
       description: "Send it to your friend.",
       tone: "success",
-    });
-  };
-
-  const copyCode = async () => {
-    if (!pairCode) return;
-    const ok = await copyToClipboard(pairCode);
-    push({
-      title: ok ? "Invite code copied" : "Could not copy invite code",
-      description: ok ? pairCode : "Copy the code manually instead.",
-      tone: ok ? "success" : "error",
-    });
-  };
-
-  const copyAddress = async () => {
-    const summary = hostStatus?.summary;
-    if (!summary) return;
-    const value = `${summary.address}:${summary.port}`;
-    const ok = await copyToClipboard(value);
-    push({
-      title: ok ? "Direct address copied" : "Could not copy address",
-      description: value,
-      tone: ok ? "success" : "error",
-    });
-  };
-
-  const copyRelayInvite = async () => {
-    if (!relay?.invite) return;
-    const ok = await copyToClipboard(relay.invite);
-    push({
-      title: ok ? "Relay invite copied" : "Could not copy invite",
-      description: ok ? "Share it with the invite code." : "Copy the invite manually instead.",
-      tone: ok ? "success" : "error",
     });
   };
 
@@ -800,7 +658,7 @@ export function HostScreen({
       push({
         title: "Live preview needs the desktop app",
         description:
-          "Run the Tauri build to capture this Mac with ScreenCaptureKit and hardware HEVC.",
+          "Use the desktop app to share this screen.",
         tone: "info",
       });
       return;
@@ -813,7 +671,6 @@ export function HostScreen({
       await new Promise((resolve) => window.setTimeout(resolve, 500));
       const fresh = await getNativePermissions();
       if (fresh) {
-        setNativeAvailable(true);
         setPerms(fresh);
         screenGranted = fresh.screenRecording;
       }
@@ -855,7 +712,6 @@ export function HostScreen({
     onStartPreview(result.summary);
   };
 
-  const grantedCount = permissionMeta.filter((entry) => perms[entry.key]).length;
 
   return (
     <div className="screen">
@@ -875,7 +731,6 @@ export function HostScreen({
       />
 
       <section className={cn("host-hero", hostRunning && "is-live")}>
-        <div className="host-hero__glow" aria-hidden="true" />
         <div className="host-hero__content">
           <div className="host-hero__icon">
             <Radio size={24} />
@@ -890,10 +745,8 @@ export function HostScreen({
             </div>
             <p>
               {hostRunning
-                ? hostStatus?.summary
-                  ? `Encrypted listener on ${hostStatus.summary.address}:${hostStatus.summary.port}. Share an invite code when you want someone to join.`
-                  : "Remote access is ready."
-                : "Turn on remote access to open an encrypted listener other ParsecPlus devices can join."}
+                ? "Friends can join with the code below."
+                : "Turn this on when you want friends to join."}
             </p>
           </div>
           <Toggle
@@ -909,54 +762,9 @@ export function HostScreen({
             {data.user?.name || friendlyDeviceName(system?.hostname)}
           </span>
           <span>
-            <Cpu size={14} />
-            {system
-              ? [system.os, system.osVersion, system.chip].filter(Boolean).join(" · ")
-              : native
-                ? "ScreenCaptureKit · HEVC"
-                : "Engine preview"}
-          </span>
-          <span>
             <MonitorUp size={14} />
-            {hostRunning
-              ? `${resolutionLabel} · ${Math.min(60, Number(host.refresh))} fps`
-              : `Capture ${resolutionLabel}`}
+            {displaySize ? `${displaySize.width} × ${displaySize.height}` : "This display"}
           </span>
-          <span>
-            <ShieldCheck size={14} />
-            {host.requireApproval ? "Approval required" : "Instant access"}
-          </span>
-          {hostRunning && (
-            <span>
-              <Users size={14} />
-              {viewers.length} connected · {pendingRequests.length} waiting
-            </span>
-          )}
-          {primaryViewer ? (
-            <>
-              <span>
-                <Activity size={14} />
-                {`${Math.round(primaryViewer.fps)} fps · ${primaryViewer.mbps.toFixed(1)} Mbps · ${formatDuration(primaryViewer.uptimeSecs)}`}
-              </span>
-              <span>
-                <Gauge size={14} />
-                {primaryViewer.adaptive
-                  ? `Adaptive ${primaryViewer.bitrateMbps.toFixed(0)} / ${primaryViewer.ceilingMbps.toFixed(0)} Mbps`
-                  : `Fixed ${primaryViewer.ceilingMbps.toFixed(0)} Mbps`}
-              </span>
-              {primaryViewer.icePath ? (
-                <span>
-                  <Router size={14} />
-                  Path: {primaryViewer.icePath}
-                </span>
-              ) : null}
-              <span>
-                <MousePointer2 size={14} />
-                {primaryViewer.keyboard || primaryViewer.mouse ? "Input allowed" : "View only"}
-              </span>
-              {viewers.length > 1 ? <span>+{viewers.length - 1} more</span> : null}
-            </>
-          ) : null}
           <Button
             size="sm"
             variant="secondary"
@@ -964,89 +772,19 @@ export function HostScreen({
             leftIcon={<Play size={13} />}
             loading={previewStarting}
             onClick={() => void startPreview()}
-            title={
-              !native
-                ? "Available in the ParsecPlus desktop app"
-                : perms.screenRecording
-                  ? "Capture this Mac and encode HEVC in hardware"
-                  : "Screen Recording permission is required"
-            }
+            title={!native ? "Available in the desktop app" : "Preview this Mac"}
           >
-            Start live preview
+            Live preview
           </Button>
         </div>
 
         <div className={cn("host-codes", hostRunning && "is-live")}>
           <div className="host-code">
             <div className="host-code__head">
-              <span className="host-code__label">Invite code</span>
+              <span className="host-code__label">Share code</span>
               <span className="mini-chip">
                 <ShieldCheck size={11} />
                 Reusable
-              </span>
-            </div>
-            <div
-              className={cn("host-code__value", (codeLoading || !pairCode) && "is-loading")}
-            >
-              {codeLoading ? "••••-••••" : pairCode || "————-————"}
-            </div>
-            <div className="host-code__actions">
-              <Button
-                size="sm"
-                variant="secondary"
-                leftIcon={<Copy size={14} />}
-                onClick={() => void copyCode()}
-                disabled={codeLoading || !pairCode}
-              >
-                Copy
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                leftIcon={<RefreshCw size={14} className={codeLoading ? "spin" : undefined} />}
-                onClick={() => void regenerateCode()}
-                disabled={codeLoading || (native && !hostRunning)}
-              >
-                New code
-              </Button>
-            </div>
-            {hostRunning && hostStatus?.summary ? (
-              <div className="host-code__address">
-                <Link2 size={12} />
-                <code>
-                  {hostStatus.summary.address}:{hostStatus.summary.port}
-                </code>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  leftIcon={<Copy size={12} />}
-                  onClick={() => void copyAddress()}
-                >
-                  Copy
-                </Button>
-              </div>
-            ) : null}
-            <p className="host-code__note">
-              {viewers.length > 0
-                ? `${viewers.length === 1 ? (viewers[0]?.device ?? "A device") : `${viewers.length} devices`} connected. A fresh code is issued when the session ends.`
-                : hostRunning
-                  ? native
-                    ? relay && relay.state !== "offline"
-                      ? "Direct and relay routes are live. The code stays valid for saved computers until you rotate it."
-                      : "This invite code stays valid for saved computers. Rotate it manually if it leaks."
-                    : "Share this invite code with the person you want to join. It stays valid until you rotate it."
-                  : native
-                    ? "Remote access is off; an invite code appears here after you turn it on."
-                    : "Invite codes are issued by the desktop app's host listener."}
-            </p>
-          </div>
-
-          <div className="host-code">
-            <div className="host-code__head">
-              <span className="host-code__label">Direct connection</span>
-              <span className="mini-chip">
-                <Link2 size={11} />
-                Tailscale-ready
               </span>
             </div>
             <div className={cn("host-code__value", (joinCodeLoading || !joinCode) && "is-loading")}>
@@ -1062,15 +800,22 @@ export function HostScreen({
               >
                 {joinCodeCopied ? "Copied" : "Copy"}
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                leftIcon={<RefreshCw size={14} className={codeLoading ? "spin" : undefined} />}
+                onClick={() => void regenerateCode()}
+                disabled={codeLoading || (native && !hostRunning)}
+              >
+                New code
+              </Button>
             </div>
             <p className="host-code__note">
               {!hostRunning
-                ? "Remote access is off; the direct connection string appears here after you turn it on."
-                : !selectedAddress
-                  ? "Choose a network address in Network."
-                  : joinCode
-                    ? "One string with the address, port and invite code. Send it to the person you want to join."
-                    : (joinCodeError ?? "Generating direct connection…")}
+                ? "Turn on remote access to get a code."
+                : joinCode
+                  ? "Send this to a friend. They paste it in ParsecPlus."
+                  : (joinCodeError ?? "Creating code…")}
             </p>
           </div>
         </div>
@@ -1085,74 +830,74 @@ export function HostScreen({
         </div>
       )}
 
-      <div className="preview-notice">
-        <Info size={16} />
-        <p>
-          <strong>Direct transport.</strong>{" "}
-          {native
-            ? "Pair another Mac with the code and direct address. Frames travel over an encrypted Noise channel; input stays view-only until you allow it."
-            : "Hosting and direct connect run in the desktop app. This browser window can't open a listener."}
-        </p>
-      </div>
-
       <div className="host-sections">
           <Panel
             id="host-access"
             title="Access"
-            description="Decide what visitors can do while they're connected."
+            description="What friends can do while connected."
             icon={<ShieldCheck size={18} />}
-            aside={
-              <span className={cn("chip", nativeAvailable && "chip--live")}>
-                {nativeAvailable ? "Checked live" : "Desktop only"} · {grantedCount}/3
-              </span>
-            }
             footnote={
               native ? (
                 <>
                   <ShieldCheck size={14} />
-                  Requests appear over any screen. Declining or letting one expire rotates the
-                  invite code. Permission status refreshes when you return to this window.
+                  You can change these while hosting.
                 </>
               ) : (
                 <>
                   <Info size={14} />
-                  macOS permissions and connection approval are available in the desktop app.
+                  Available in the desktop app.
                 </>
               )
             }
           >
             <div className="setting-list">
               <SettingRow
-                title="Allow remote input"
-                description={
-                  native
-                    ? hostRunning
-                      ? "Let the paired device control this Mac. Requires Accessibility and stops when the session ends."
-                      : "Turn on hosting to arm pointer and keyboard control."
-                    : "Available in the desktop app's direct sessions."
-                }
+                title="Keyboard and mouse"
+                description="Let friends control this Mac. Off by default."
                 icon={<MousePointer2 size={16} />}
               >
                 <Toggle
                   checked={allowRemoteInput}
                   onChange={(value) => void toggleRemoteInput(value)}
-                  label="Allow remote input"
+                  label="Keyboard and mouse"
                   disabled={!native || !hostRunning}
                 />
               </SettingRow>
               <SettingRow
-                title="Require approval"
-                description={
-                  native
-                    ? "Review each device before its session starts. Requests stay open for up to two minutes."
-                    : "Accept each connection before it starts."
-                }
+                title="Controllers"
+                description="Each friend gets their own controller. On by default."
+                icon={<Gamepad2 size={16} />}
+              >
+                <Toggle
+                  checked={host.gamepad}
+                  onChange={(value) => void toggleGamepad(value)}
+                  label="Controllers"
+                  disabled={!native || !hostRunning}
+                />
+              </SettingRow>
+              {hostStatus?.gamepadError ? (
+                <p className="settings-note">Controllers aren't available right now.</p>
+              ) : null}
+              <SettingRow
+                title="Clipboard"
+                description="Share copied text both ways."
+                icon={<Clipboard size={16} />}
+              >
+                <Toggle
+                  checked={host.clipboard}
+                  onChange={(value) => updateHost({ clipboard: value })}
+                  label="Clipboard"
+                />
+              </SettingRow>
+              <SettingRow
+                title="Ask before connecting"
+                description="Ask you before anyone connects."
                 icon={<ShieldCheck size={16} />}
               >
                 <Toggle
                   checked={host.requireApproval}
                   onChange={(value) => void toggleApproval(value)}
-                  label="Require approval"
+                  label="Ask before connecting"
                 />
               </SettingRow>
             </div>
@@ -1209,14 +954,13 @@ export function HostScreen({
           <Panel
             id="host-video"
             title="Video"
-            description="Capture size, motion, and encoding."
-            icon={<MonitorUp size={18} />}
+            description="What friends see."
+            icon={<Monitor size={18} />}
             footnote={
               native ? (
                 <>
                   <Info size={14} />
-                  Capture, bitrate, adaptive, and frame-rate changes apply the next time hosting
-                  starts.
+                  Changes apply next time you start hosting.
                 </>
               ) : undefined
             }
@@ -1224,7 +968,7 @@ export function HostScreen({
             <div className="field-grid">
               <Select
                 id="host-display"
-                label="Shared display"
+                label="Display"
                 value={String(host.displayIndex)}
                 onChange={(event) =>
                   updateHost({ displayIndex: Number(event.target.value) })
@@ -1233,59 +977,30 @@ export function HostScreen({
                   displays.length > 0
                     ? displays.map((entry) => ({
                         value: String(entry.index),
-                        label: `${entry.label} · ${entry.width} × ${entry.height}`,
+                        label: entry.label,
                       }))
                     : [
                         {
                           value: String(host.displayIndex),
                           label: displayLoading
-                            ? "Detecting displays…"
+                            ? "Looking for displays"
                             : displayError
-                              ? "Displays unavailable"
+                              ? "Display unavailable"
                               : `Display ${host.displayIndex + 1}`,
                         },
                       ]
                 }
               />
               <Select
-                id="host-resolution"
-                label="Resolution"
-                value={host.resolution}
-                onChange={(event) =>
-                  updateHost({ resolution: event.target.value as typeof host.resolution })
-                }
+                id="host-quality"
+                label="Quality"
+                value={host.bitrate >= 20 ? "20" : host.bitrate <= 8 ? "8" : "12"}
+                onChange={(event) => updateHost({ bitrate: Number(event.target.value) })}
                 options={[
-                  {
-                    value: "match",
-                    label: matchDimensions
-                      ? `Match display · ${matchDimensions.width} × ${matchDimensions.height}`
-                      : "Match display · native",
-                  },
-                  { value: "1920x1080", label: "1920 × 1080 · 16:9" },
-                  { value: "2560x1440", label: "2560 × 1440 · 16:9" },
-                  { value: "3840x2160", label: "3840 × 2160 · 16:9" },
+                  { value: "8", label: "Data saver" },
+                  { value: "12", label: "Balanced" },
+                  { value: "20", label: "High" },
                 ]}
-              />
-              <Select
-                id="host-refresh"
-                label="Refresh rate"
-                value="60"
-                onChange={() => {}}
-                options={[{ value: "60", label: "60 Hz" }]}
-                hint="This build caps capture at 60 fps; 120 Hz+ is planned."
-              />
-              <Select
-                id="host-codec"
-                label="Codec"
-                value={host.codec === "hevc" ? "hevc" : "auto"}
-                onChange={(event) =>
-                  updateHost({ codec: event.target.value as typeof host.codec })
-                }
-                options={[
-                  { value: "auto", label: "Auto (HEVC)" },
-                  { value: "hevc", label: "HEVC" },
-                ]}
-                hint="HEVC is the only hardware encoder in this build. H.264 and AV1 are planned."
               />
             </div>
 
@@ -1293,376 +1008,16 @@ export function HostScreen({
               <p className="settings-note">
                 {displayError}{" "}
                 <Button size="sm" variant="ghost" onClick={() => void loadDisplays()}>
-                  Retry
+                  Try again
                 </Button>
               </p>
             ) : (
               <p className="settings-note">
-                ScreenCaptureKit lists every shareable display. The selected display is used the
-                next time hosting or live preview starts.
+                The selected display is shared when hosting starts.
               </p>
             )}
-
-            <p className="settings-note">
-              Capture size: <strong>{resolutionLabel}</strong>
-              {host.resolution === "match"
-                ? displaySize
-                  ? ` · aspect-matched from ${displaySize.width} × ${displaySize.height}`
-                  : " · measuring this display…"
-                : ""}
-            </p>
-
-            <div className="settings-subhead">
-              <Gauge size={14} />
-              Bitrate
-            </div>
-            <Segmented
-              size="sm"
-              ariaLabel="Bitrate preset"
-              value={String(host.bitrate)}
-              onChange={(value) => updateHost({ bitrate: Number(value) })}
-              options={bitrateOptions}
-            />
-            <p className="settings-note">
-              Internet and Wi-Fi sessions should stay at 8–12 Mbps. Adaptive bitrate lowers the
-              encoder target whenever the link falls behind.
-            </p>
-
-            <div className="setting-list">
-              <SettingRow
-                title="HDR"
-                description="Not implemented yet: HDR capture and tone mapping are planned for a later phase."
-              >
-                <Toggle
-                  checked={false}
-                  disabled
-                  onChange={() => {}}
-                  label="HDR (planned)"
-                />
-              </SettingRow>
-            </div>
           </Panel>
 
-          <Panel
-            id="host-network"
-            title="Network"
-            description="How ParsecPlus finds the fastest route."
-            icon={<Activity size={18} />}
-            footnote={
-              native ? (
-                <>
-                  <Info size={14} />
-                  Network changes apply the next time hosting starts.
-                </>
-              ) : undefined
-            }
-          >
-            <div className="setting-list">
-              <SettingRow
-                title="Adaptive bitrate"
-                description="Lower the encoder target when the encrypted link falls behind, then recover as it stabilizes."
-              >
-                <Toggle
-                  checked={host.adaptNetwork}
-                  onChange={(value) => updateHost({ adaptNetwork: value })}
-                  label="Adaptive bitrate"
-                />
-              </SettingRow>
-              <SettingRow
-                title="Relay invite"
-                description="Publish an encrypted relay route for devices that can't reach this Mac directly."
-              >
-                <Toggle
-                  checked={host.relayFallback}
-                  onChange={(value) => updateHost({ relayFallback: value })}
-                  label="Relay invite"
-                />
-              </SettingRow>
-            </div>
-
-            {host.relayFallback ? (
-              <TextField
-                id="host-relay-address"
-                containerClassName="network-relay-input"
-                label="Relay address"
-                placeholder="relay.example.com:39210"
-                value={host.relayAddress}
-                spellCheck={false}
-                autoCapitalize="off"
-                autoCorrect="off"
-                onChange={(event) => updateHost({ relayAddress: event.target.value })}
-                hint="Self-hosted relay reachable by both devices. Leave blank for nearby-only hosting."
-              />
-            ) : null}
-
-            <TextField
-              id="host-media-port"
-              containerClassName="network-relay-input"
-              label="Media UDP port"
-              type="number"
-              min={1024}
-              max={65535}
-              value={host.mediaPort}
-              onChange={(event) => {
-                const raw = event.target.value.trim();
-                if (!raw) return;
-                const next = Number(raw);
-                if (Number.isFinite(next)) updateHost({ mediaPort: next });
-              }}
-              onBlur={() => updateHost({ mediaPort: clampMediaPort(host.mediaPort) })}
-              hint="Forward this UDP port on your router for direct video without a relay."
-            />
-
-            <div className="network-test">
-              <div className="network-test__head">
-                <span className="network-test__icon">
-                  <Link2 size={20} />
-                </span>
-                <div>
-                  <p>Share with a friend</p>
-                  <span>One string carries this Mac's address, port, and reusable invite code.</span>
-                </div>
-              </div>
-              {tailscale ? (
-                <p className="settings-note">
-                  Tailscale <strong>{tailscale.tailnet || tailscale.hostName || "tailnet"}</strong>{" "}
-                  · {tailscale.status}
-                  <br />
-                  Your friend must be on this Tailscale tailnet.
-                </p>
-              ) : null}
-              {shareAddresses.length > 0 ? (
-                <div className="network-relay-input">
-                  <Select
-                    id="host-share-address"
-                    label="Share this address"
-                    value={selectedAddress}
-                    onChange={(event) => setSelectedAddress(event.target.value)}
-                    options={shareAddresses.map((entry) => ({
-                      value: entry.address,
-                      label: entry.label,
-                    }))}
-                  />
-                </div>
-              ) : (
-                <p className="settings-note">
-                  {networkLoading
-                    ? "Looking for network addresses…"
-                    : "No network addresses reported by this Mac."}
-                </p>
-              )}
-              {hostRunning ? (
-                joinCode ? (
-                  <>
-                    <div className="pairing-box__address">
-                      <span className="pairing-box__address-label">
-                        <Link2 size={12} />
-                        Direct connection
-                      </span>
-                      <code title={joinCode}>{joinCode}</code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        leftIcon={joinCodeCopied ? <Check size={12} /> : <Copy size={12} />}
-                        onClick={() => void copyJoinCode()}
-                      >
-                        {joinCodeCopied ? "Copied" : "Copy"}
-                      </Button>
-                    </div>
-                    <p className="settings-note">
-                      Your friend opens Computers → Direct connect → Invite code, pastes this, and
-                      you get an Approve/Reject request. The code stays valid for one-click reconnects until you rotate it.
-                    </p>
-                  </>
-                ) : (
-                  <p className="settings-note">
-                    {joinCodeLoading
-                      ? "Generating direct connection…"
-                      : (joinCodeError ?? "Waiting for the invite code…")}
-                  </p>
-                )
-              ) : (
-                <p className="settings-note">Turn on remote access to generate a direct connection.</p>
-              )}
-            </div>
-
-            <div className="network-test">
-              <div className="network-test__head">
-                <span className="network-test__icon">
-                  <Globe2 size={20} />
-                </span>
-                <div>
-                  <p>Internet test</p>
-                  <span>
-                    Forward these on your router so a friend outside your network can reach this
-                    Mac.
-                  </span>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={detectingAddress}
-                  leftIcon={!detectingAddress ? <Globe2 size={14} /> : undefined}
-                  onClick={() => void detectPublicAddress()}
-                  disabled={!native}
-                >
-                  Detect public address
-                </Button>
-              </div>
-              <div
-                className="network-test__grid"
-                style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-              >
-                <div>
-                  <span>TCP · signaling</span>
-                  <strong>{tcpPort}</strong>
-                </div>
-                <div>
-                  <span>UDP · video</span>
-                  <strong>{mediaPort}</strong>
-                </div>
-              </div>
-              <p className="settings-note">
-                Forward TCP {tcpPort} and UDP {mediaPort} on your router, then share the host's
-                public address with your friend.
-              </p>
-              {publicAddress ? (
-                <>
-                  <p className="settings-note">
-                    Public IP: <strong>{publicAddress.address}</strong> — your friend connects to{" "}
-                    <span className="mono-chip">
-                      {publicAddress.address}:{tcpPort}
-                    </span>{" "}
-                    · local {publicAddress.localAddress}
-                  </p>
-                  <p className="settings-note">
-                    UDP mapping seen by STUN: <strong>{publicAddress.port}</strong>
-                    {publicAddress.port === mediaPort
-                      ? " — the forward is working."
-                      : ` — forward external UDP ${publicAddress.port} to internal ${mediaPort} on this Mac.`}
-                  </p>
-                </>
-              ) : null}
-              {detectError ? <p className="network-error">{detectError}</p> : null}
-              {!data.settings.iceStunUrls.trim() ? (
-                <p className="settings-note">
-                  No STUN server configured; detection uses {DEFAULT_PUBLIC_STUN}. Add your own
-                  in Settings → Network.
-                </p>
-              ) : null}
-            </div>
-
-            {relay ? (
-              <div
-                className={cn(
-                  "pairing-box__address",
-                  "pairing-box__address--relay",
-                  relay.state === "offline" && "pairing-box__address--offline",
-                )}
-              >
-                <span className="pairing-box__address-label">
-                  <Router size={12} />
-                  Relay invite
-                </span>
-                <code title={relay.invite}>{relay.invite}</code>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  leftIcon={<Copy size={12} />}
-                  onClick={() => void copyRelayInvite()}
-                >
-                  Copy
-                </Button>
-              </div>
-            ) : null}
-
-            <div className="network-meta">
-              <span>Host port</span>
-              <span className="mono-chip">
-                TCP {hostStatus?.summary?.port ?? 39200}
-              </span>
-              <span>Nearby</span>
-              <span className="mini-chip">
-                <Wifi size={11} />
-                {nearbyAdvertised ? "Advertised" : "Off"}
-              </span>
-              <span>Relay</span>
-              <span className="mini-chip">
-                <Router size={11} />
-                {relayMeta}
-              </span>
-              <span>Route</span>
-              <span className="mini-chip">
-                <Activity size={11} />
-                {route}
-              </span>
-            </div>
-            {relay?.state === "offline" && relay.error ? (
-              <p className="network-error">{relay.error}</p>
-            ) : null}
-          </Panel>
-
-          <Panel
-            id="host-advanced"
-            title="Advanced"
-            description="Display and peripheral overrides that rarely change."
-            icon={<SlidersHorizontal size={18} />}
-          >
-              <div className="setting-list">
-                <SettingRow
-                  title="Virtual display · planned"
-                  description="Headless displays ship in a later phase."
-                >
-                  <Toggle checked={false} disabled onChange={() => {}} label="Virtual display (planned)" />
-                </SettingRow>
-                <SettingRow
-                  title="Controller passthrough"
-                  description="Forward a viewer's controller to this Mac as a virtual gamepad. Requires the host app to be signed with the virtual-HID entitlement."
-                  icon={<Gamepad2 size={16} />}
-                >
-                  <Toggle
-                    checked={host.gamepad}
-                    onChange={(value) => void toggleGamepad(value)}
-                    label="Controller passthrough"
-                  />
-                </SettingRow>
-                {hostStatus?.gamepadError ? (
-                  <p className="network-error">{hostStatus.gamepadError}</p>
-                ) : null}
-                <SettingRow
-                  title="Clipboard text sync"
-                  description="Share copied text both ways. macOS may ask for pasteboard access on first use."
-                  icon={<Clipboard size={16} />}
-                >
-                  <Toggle
-                    checked={host.clipboard}
-                    onChange={(value) => updateHost({ clipboard: value })}
-                    label="Clipboard text sync"
-                  />
-                </SettingRow>
-                <SettingRow
-                  title="File transfer · planned"
-                  description="Drag-and-drop files ship in a later phase."
-                  icon={<FolderUp size={16} />}
-                >
-                  <Toggle checked={false} disabled onChange={() => {}} label="File transfer (planned)" />
-                </SettingRow>
-                <SettingRow
-                  title="Host audio · planned"
-                  description="System-audio streaming ships in a later phase."
-                  icon={<Volume2 size={16} />}
-                >
-                  <Toggle checked={false} disabled onChange={() => {}} label="Host audio (planned)" />
-                </SettingRow>
-                <SettingRow
-                  title="Lock cursor to window · planned"
-                  description="Pointer locking ships with the input-depth phase."
-                  icon={<MousePointer2 size={16} />}
-                >
-                  <Toggle checked={false} disabled onChange={() => {}} label="Lock cursor (planned)" />
-                </SettingRow>
-              </div>
-          </Panel>
       </div>
     </div>
   );

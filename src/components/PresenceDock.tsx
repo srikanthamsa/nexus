@@ -259,7 +259,7 @@ export function PresenceDock({ compact = false }: { compact?: boolean }) {
         ))}
 
         {viewers.map((viewer) => {
-          const viewOnly = !viewer.keyboard && !viewer.mouse;
+          const viewOnly = !viewer.keyboard && !viewer.mouse && !viewer.gamepad;
           return (
             <Popover
               key={viewer.peerId}
@@ -270,7 +270,7 @@ export function PresenceDock({ compact = false }: { compact?: boolean }) {
               button={
                 <span
                   className="presence-chip__avatar"
-                  title={`${deviceName(viewer)} · connected · ${Math.round(viewer.fps)} fps`}
+                  title={`${deviceName(viewer)} · connected`}
                 >
                   <Avatar name={deviceName(viewer)} size={compact ? 30 : 34} presence="online" />
                 </span>
@@ -284,41 +284,19 @@ export function PresenceDock({ compact = false }: { compact?: boolean }) {
                   </span>
                 </div>
                 <span className={cn("presence-pop__badge", viewOnly && "is-viewonly")}>
-                  {viewOnly ? "View only" : "In control"}
+                  {viewOnly ? "Watching" : "Connected"}
                 </span>
               </div>
 
               <div className="presence-pop__meta">
                 <span>
                   <Wifi size={12} />
-                  {viewer.transport === "webrtc" ? "WebRTC · UDP" : "TCP"}
-                  {viewer.icePath ? ` · ${viewer.icePath}` : ""}
+                  {viewer.transport === "webrtc" ? "Direct" : "Fallback"}
                 </span>
                 <span>
                   <Clock3 size={12} />
                   {formatDuration(viewer.uptimeSecs)}
                 </span>
-              </div>
-
-              <div className="presence-pop__stats">
-                <div>
-                  <span>FPS</span>
-                  <strong>{Math.round(viewer.fps)}</strong>
-                </div>
-                <div>
-                  <span>Bitrate</span>
-                  <strong>
-                    {viewer.bitrateMbps.toFixed(0)}/{viewer.ceilingMbps.toFixed(0)}
-                  </strong>
-                </div>
-                <div>
-                  <span>Mbps</span>
-                  <strong>{viewer.mbps.toFixed(1)}</strong>
-                </div>
-                <div>
-                  <span>Jitter</span>
-                  <strong>{Math.round(viewer.jitterMs)}</strong>
-                </div>
               </div>
 
               <div className="presence-pop__perms">
@@ -355,11 +333,11 @@ export function PresenceDock({ compact = false }: { compact?: boolean }) {
                 <div className="presence-pop__perm">
                   <span>
                     <Gamepad2 size={13} />
-                    Gamepad
+                    Controller
                   </span>
                   <Toggle
                     size="sm"
-                    label="Gamepad access"
+                    label="Controller access"
                     checked={viewer.gamepad}
                     disabled={busyPeer === viewer.peerId}
                     onChange={(value) => void updatePermissions(viewer, { gamepad: value })}
@@ -375,7 +353,7 @@ export function PresenceDock({ compact = false }: { compact?: boolean }) {
                 loading={busyPeer === viewer.peerId}
                 onClick={() => void kick(viewer)}
               >
-                Disconnect viewer
+                Disconnect
               </Button>
             </Popover>
           );

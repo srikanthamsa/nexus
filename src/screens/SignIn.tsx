@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, Cpu, Radio, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, Monitor, ShieldCheck, UserRound, Zap } from "lucide-react";
 import { Button } from "../components/Button";
 import { Logo, LogoMark } from "../components/Logo";
 import { TextField } from "../components/TextField";
@@ -97,36 +97,36 @@ export function SignInScreen() {
 
             <div className="auth-route-pill">
               <span className="auth-route-pill__dot" />
-              End-to-end encrypted
+              Private connection
               <span className="auth-route-pill__sep" />
-              No account required
+              No account needed
             </div>
           </div>
 
           <ul className="auth__features">
             <li>
               <span>
-                <Radio size={11} />
-              </span>
-              Direct-first networking
-            </li>
-            <li>
-              <span>
                 <ShieldCheck size={11} />
               </span>
-              End-to-end encryption
+              Private connection
             </li>
             <li>
               <span>
                 <Zap size={11} />
               </span>
-              Ultra low latency
+              Fast on any network
             </li>
             <li>
               <span>
-                <Cpu size={11} />
+                <Monitor size={11} />
               </span>
-              Hardware HEVC
+              Sharp picture
+            </li>
+            <li>
+              <span>
+                <UserRound size={11} />
+              </span>
+              No account needed
             </li>
           </ul>
         </div>
