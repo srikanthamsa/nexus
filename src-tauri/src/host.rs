@@ -6,6 +6,7 @@ use crate::{
     congestion::encoder_mbps_for,
     gamepad::VirtualGamepad,
     input::{NativeInput, RemoteInput},
+    ojd::{self, OjdPad},
     reachability::{self, DiscoveryAdvertisement, RelayInvite, RelayRole, RelayTarget},
     transport::{
         self, generate_pair_code, normalize_pair_code, Control, DisplayOption, OutgoingFrame,
@@ -119,6 +120,8 @@ pub struct ViewerSummary {
     pub keyboard: bool,
     pub mouse: bool,
     pub gamepad: bool,
+    /// Player slot for controller passthrough (host is 0, viewers start at 1).
+    pub controller_slot: u8,
     #[serde(flatten)]
     stats: ViewerStats,
 }
@@ -152,6 +155,7 @@ struct PeerState {
     keyboard: AtomicBool,
     mouse: AtomicBool,
     gamepad: AtomicBool,
+    controller_slot: u8,
     kick: AtomicBool,
     stats: Mutex<ViewerStats>,
 }
@@ -174,6 +178,7 @@ struct HostShared {
     allow_input: AtomicBool,
     allow_gamepad: AtomicBool,
     gamepad_error: Mutex<Option<String>>,
+    ojd_config: Option<ojd::OjdConfig>,
     running: AtomicBool,
     streaming: AtomicBool,
     require_approval: AtomicBool,
@@ -286,6 +291,7 @@ impl HostShared {
                 keyboard: peer.keyboard.load(Ordering::SeqCst),
                 mouse: peer.mouse.load(Ordering::SeqCst),
                 gamepad: peer.gamepad.load(Ordering::SeqCst),
+                controller_slot: peer.controller_slot,
                 stats: peer.stats.lock().expect("viewer stats poisoned").clone(),
             })
             .collect();
@@ -375,6 +381,16 @@ impl HostShared {
         transport: &str,
         ice_path: Option<String>,
     ) {
+        // Reuse the lowest free controller slot so a reconnect does not
+        // exhaust a game that only supports four pads.
+        let controller_slot = {
+            let peers = self.peers.lock().expect("host peers poisoned");
+            let mut slot = 1u8;
+            while peers.iter().any(|peer| peer.controller_slot == slot) {
+                slot = slot.saturating_add(1);
+            }
+            slot
+        };
         let state = Arc::new(PeerState {
             peer_id,
             peer,
@@ -385,6 +401,7 @@ impl HostShared {
             keyboard: AtomicBool::new(true),
             mouse: AtomicBool::new(true),
             gamepad: AtomicBool::new(true),
+            controller_slot,
             kick: AtomicBool::new(false),
             stats: Mutex::new(ViewerStats {
                 ice_path,
@@ -579,9 +596,11 @@ pub fn native_host_start(
     {
         let options = options.unwrap_or_default().normalized()?;
         let gamepad = gamepad.unwrap_or(true);
-        // Probe the virtual HID backend once so the Host screen can explain a
-        // missing entitlement before a controller is ever connected.
-        let gamepad_error = if gamepad {
+        // Prefer OpenJoystickDriver: it is already signed with the virtual-HID
+        // entitlement and needs no SIP/AMFI changes. Only probe the in-process
+        // HID backend when OJD is not configured.
+        let ojd_config = gamepad.then(ojd::discover).flatten();
+        let gamepad_error = if gamepad && ojd_config.is_none() {
             match VirtualGamepad::new(0) {
                 Ok(device) => {
                     drop(device);
@@ -645,6 +664,7 @@ pub fn native_host_start(
             allow_input: AtomicBool::new(false),
             allow_gamepad: AtomicBool::new(gamepad),
             gamepad_error: Mutex::new(gamepad_error),
+            ojd_config: ojd_config.clone(),
             running: AtomicBool::new(true),
             streaming: AtomicBool::new(false),
             require_approval: AtomicBool::new(require_approval.unwrap_or(true)),
@@ -813,14 +833,18 @@ pub fn native_host_set_gamepad(
     };
     active.shared.allow_gamepad.store(allow, Ordering::SeqCst);
     if allow {
-        // Re-probe so a build that gained the entitlement starts working
-        // without restarting the host.
-        match VirtualGamepad::new(0) {
-            Ok(device) => {
-                drop(device);
-                active.shared.set_gamepad_error(None);
+        // OJD is already available; otherwise re-probe so a build that gained
+        // the entitlement starts working without restarting the host.
+        if active.shared.ojd_config.is_some() {
+            active.shared.set_gamepad_error(None);
+        } else {
+            match VirtualGamepad::new(0) {
+                Ok(device) => {
+                    drop(device);
+                    active.shared.set_gamepad_error(None);
+                }
+                Err(error) => active.shared.set_gamepad_error(Some(error)),
             }
-            Err(error) => active.shared.set_gamepad_error(Some(error)),
         }
     } else {
         active.shared.set_gamepad_error(None);
@@ -1490,6 +1514,8 @@ fn serve_client(
     // Created lazily on the first controller snapshot and dropped with the
     // session, so a viewer that never uses a controller costs nothing.
     let mut virtual_gamepad: Option<VirtualGamepad> = None;
+    let mut ojd_pad: Option<OjdPad> = None;
+    let controller_slot = shared.peer(&peer_id).map_or(1, |peer| peer.controller_slot);
     let mut clipboard_change = if options.clipboard {
         clipboard::change_count()
     } else {
@@ -1688,6 +1714,14 @@ fn serve_client(
             }
         }
 
+        if let Some(pad) = ojd_pad.as_mut() {
+            if let Err(error) = pad.keepalive_if_due() {
+                shared.set_gamepad_error(Some(error));
+                shared.emit();
+                ojd_pad = None;
+            }
+        }
+
         for _ in 0..MAX_CONTROL_BURST {
             match session.poll_recv() {
                 Ok(Some(message)) => {
@@ -1723,10 +1757,13 @@ fn serve_client(
                             }
                         }
                         Control::Gamepad { state } => {
-                            if !shared.allow_input.load(Ordering::SeqCst)
-                                || !shared.allow_gamepad.load(Ordering::SeqCst)
-                            {
+                            // Controller passthrough is independent from the
+                            // keyboard/mouse consent arm: controllers are the
+                            // default remote input, and each viewer has their
+                            // own per-viewer switch.
+                            if !shared.allow_gamepad.load(Ordering::SeqCst) {
                                 virtual_gamepad = None;
+                                ojd_pad = None;
                                 continue;
                             }
                             let allowed = shared
@@ -1734,14 +1771,41 @@ fn serve_client(
                                 .is_none_or(|peer| peer.gamepad.load(Ordering::SeqCst));
                             if !allowed {
                                 virtual_gamepad = None;
+                                ojd_pad = None;
                                 continue;
                             }
                             if !state.connected {
                                 virtual_gamepad = None;
+                                ojd_pad = None;
                                 continue;
                             }
+
+                            if let Some(config) = shared.ojd_config.as_ref() {
+                                if ojd_pad.is_none() {
+                                    match OjdPad::connect(config, controller_slot) {
+                                        Ok(pad) => {
+                                            shared.set_gamepad_error(None);
+                                            ojd_pad = Some(pad);
+                                        }
+                                        Err(error) => {
+                                            shared.set_gamepad_error(Some(error));
+                                            shared.emit();
+                                            continue;
+                                        }
+                                    }
+                                }
+                                if let Some(pad) = ojd_pad.as_mut() {
+                                    if let Err(error) = pad.send_state(&state) {
+                                        shared.set_gamepad_error(Some(error));
+                                        shared.emit();
+                                        ojd_pad = None;
+                                    }
+                                }
+                                continue;
+                            }
+
                             if virtual_gamepad.is_none() {
-                                match VirtualGamepad::new(state.slot) {
+                                match VirtualGamepad::new(controller_slot) {
                                     Ok(device) => {
                                         shared.set_gamepad_error(None);
                                         virtual_gamepad = Some(device);

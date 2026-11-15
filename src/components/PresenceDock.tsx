@@ -280,7 +280,7 @@ export function PresenceDock({ compact = false }: { compact?: boolean }) {
                 <div>
                   <p>{deviceName(viewer)}</p>
                   <span>
-                    {viewer.device} · {viewer.peer}
+                    {viewer.device} · {viewer.peer} · Player {viewer.controllerSlot + 1}
                   </span>
                 </div>
                 <span className={cn("presence-pop__badge", viewOnly && "is-viewonly")}>

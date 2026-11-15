@@ -384,11 +384,11 @@ export function SessionScreen({
     };
   }, [remote, remoteInput, menuOpen]);
 
-  // Forward physical controllers to the host. The W3C Gamepad API is polled
-  // once per animation frame; only changed snapshots cross the encrypted
-  // channel, and a pad that disappears sends an explicit release.
+  // Forward physical controllers to the host. Controller passthrough is
+  // independent from keyboard/mouse consent: the host gates each viewer's pad
+  // separately, so poll whenever a remote session is active.
   useEffect(() => {
-    if (!remote || !remoteInput) return;
+    if (!remote) return;
     if (typeof navigator === "undefined" || typeof navigator.getGamepads !== "function") {
       return;
     }

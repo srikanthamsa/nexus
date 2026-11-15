@@ -205,6 +205,8 @@ export interface NativeViewer {
   keyboard: boolean;
   mouse: boolean;
   gamepad: boolean;
+  /** Player slot for controller passthrough (host is 0, viewers start at 1). */
+  controllerSlot: number;
   fps: number;
   mbps: number;
   frames: number;
