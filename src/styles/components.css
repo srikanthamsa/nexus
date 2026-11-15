@@ -327,7 +327,7 @@
 .meta-pill {
   font-size: 11.5px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: rgba(244, 246, 243, 0.72);
 }
 
 .meta-pill.is-live {
@@ -1407,7 +1407,7 @@
 
 .page-header__description {
   margin-top: 7px;
-  color: var(--text-tertiary);
+  color: rgba(244, 246, 243, 0.76);
   font-size: 13.5px;
   line-height: 1.5;
 }

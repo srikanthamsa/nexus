@@ -39,17 +39,17 @@ export function WarpField() {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const tone = hexToRgb(getComputedStyle(canvas).getPropertyValue("--tone"), [233, 244, 0]);
+    const tone = hexToRgb(getComputedStyle(canvas).getPropertyValue("--tone"), [253, 240, 1]);
     const toneTwo = hexToRgb(
       getComputedStyle(canvas).getPropertyValue("--tone-2"),
-      [255, 247, 120],
+      [215, 243, 106],
     );
     const palette = [
       [255, 255, 255],
       [236, 233, 255],
       tone,
       toneTwo,
-      [255, 247, 120],
+      [215, 243, 106],
     ] as const;
 
     const stars = Array.from({ length: STAR_COUNT }, () =>

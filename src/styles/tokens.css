@@ -1,26 +1,26 @@
 :root {
   color-scheme: dark;
 
-  --bg: #080807;
-  --bg-deep: #050504;
-  --bg-elevated: #0d0d0b;
-  --surface-1: #121210;
-  --surface-2: #181816;
-  --surface-3: #20201d;
-  --surface-4: #292925;
+  --bg: #5b7011;
+  --bg-deep: #4e600d;
+  --bg-elevated: #171d1c;
+  --surface-1: #1c2524;
+  --surface-2: #222b29;
+  --surface-3: #2a3431;
+  --surface-4: #34403b;
 
-  --text: #f4f2e9;
-  --text-secondary: #c8c4b6;
-  --text-tertiary: #8d8a7e;
-  --text-faint: #646257;
+  --text: #f4f6f3;
+  --text-secondary: #c2cbc5;
+  --text-tertiary: #97a39d;
+  --text-faint: #6e7c75;
 
   --border: rgba(255, 255, 255, 0.078);
   --border-strong: rgba(255, 255, 255, 0.14);
   --border-faint: rgba(255, 255, 255, 0.048);
 
-  --success: #5fd39a;
-  --success-soft: rgba(70, 227, 166, 0.12);
-  --success-line: rgba(70, 227, 166, 0.28);
+  --success: #17b7af;
+  --success-soft: rgba(23, 183, 175, 0.14);
+  --success-line: rgba(23, 183, 175, 0.3);
   --warning: #e8b45e;
   --warning-soft: rgba(245, 185, 95, 0.12);
   --warning-line: rgba(245, 185, 95, 0.28);
@@ -30,14 +30,14 @@
   --info: #6fb2ff;
   --info-soft: rgba(111, 178, 255, 0.12);
 
-  --accent: #e9f400;
-  --accent-2: #fff778;
-  --accent-ink: #0a0a08;
-  --accent-soft: rgba(233, 244, 0, 0.12);
-  --accent-soft-2: rgba(233, 244, 0, 0.06);
-  --accent-line: rgba(233, 244, 0, 0.34);
-  --accent-glow: rgba(233, 244, 0, 0.16);
-  --accent-ring: rgba(233, 244, 0, 0.32);
+  --accent: #fdf001;
+  --accent-2: #d7f36a;
+  --accent-ink: #101400;
+  --accent-soft: rgba(253, 240, 1, 0.14);
+  --accent-soft-2: rgba(253, 240, 1, 0.07);
+  --accent-line: rgba(253, 240, 1, 0.38);
+  --accent-glow: rgba(253, 240, 1, 0.18);
+  --accent-ring: rgba(253, 240, 1, 0.36);
 
   --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     system-ui, sans-serif;
@@ -80,16 +80,16 @@
   --dur-screen: 280ms;
 }
 
-/* Content tone: Nexus is a single yellow-on-black system. */
+/* Content tone: one acid-yellow accent over olive and charcoal. */
 .theme-nexus,
 .theme-violet,
 .theme-cyan,
 .theme-amber,
 .theme-emerald,
 .theme-rose {
-  --tone: #e9f400;
-  --tone-2: #fff778;
-  --tone-a: rgba(233, 244, 0, 0.16);
-  --tone-b: rgba(255, 247, 120, 0.09);
-  --tone-line: rgba(233, 244, 0, 0.32);
+  --tone: #fdf001;
+  --tone-2: #d7f36a;
+  --tone-a: rgba(253, 240, 1, 0.18);
+  --tone-b: rgba(134, 185, 54, 0.12);
+  --tone-line: rgba(253, 240, 1, 0.36);
 }

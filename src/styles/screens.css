@@ -7,7 +7,7 @@
   overflow: hidden;
   padding: 44px clamp(36px, 4.6vw, 68px);
   border-right: 1px solid var(--border-faint);
-  background: #090a0f;
+  background: #5b7011;
 }
 
 .auth__mesh {
@@ -67,7 +67,7 @@
 .auth__subhead {
   max-width: 430px;
   margin-top: 14px;
-  color: var(--text-tertiary);
+  color: rgba(244, 246, 243, 0.72);
   font-size: 13.5px;
   line-height: 1.65;
 }
@@ -294,9 +294,7 @@
   justify-content: center;
   overflow-y: auto;
   padding: 36px 40px;
-  background:
-    radial-gradient(600px 400px at 100% 0%, rgba(233, 244, 0, 0.045), transparent 60%),
-    #08090d;
+  background: #171d1c;
 }
 
 .auth__panel-inner {
@@ -514,14 +512,14 @@
 }
 
 .section-head h2 {
-  color: var(--text-secondary);
+  color: rgba(244, 246, 243, 0.82);
   font-size: var(--text-base);
   font-weight: 600;
   letter-spacing: -0.008em;
 }
 
 .section-head__count {
-  color: var(--text-faint);
+  color: rgba(244, 246, 243, 0.5);
   font-size: 11px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -529,7 +527,7 @@
 
 .section-head__meta {
   margin-left: auto;
-  color: var(--text-faint);
+  color: rgba(244, 246, 243, 0.58);
   font-size: var(--text-xs);
 }
 
@@ -786,7 +784,7 @@
   padding: 22px;
   border: 1px dashed var(--border-strong);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.012);
+  background: var(--surface-1);
   text-align: center;
   transition:
     background var(--dur-fast) ease,
@@ -1959,12 +1957,14 @@
 
 .settings-nav {
   position: sticky;
-  top: 4px;
+  top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding-right: 18px;
-  border-right: 1px solid var(--border-faint);
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
 }
 
 .settings-nav__item {
@@ -2034,18 +2034,21 @@
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 16px;
   min-width: 0;
   max-width: 760px;
 }
 
 .settings-panel {
   min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
 }
 
 .settings-panel + .settings-panel {
-  padding-top: 26px;
-  border-top: 1px solid var(--border-faint);
+  padding-top: 20px;
 }
 
 .settings-panel__head {
@@ -4885,7 +4888,7 @@
   margin-top: 9px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: radial-gradient(120% 140% at 50% 20%, rgba(233, 244, 0, 0.22), #080807 70%);
+  background: radial-gradient(120% 140% at 50% 20%, rgba(253, 240, 1, 0.22), #080807 70%);
   color: var(--accent);
   box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.6);
 }
