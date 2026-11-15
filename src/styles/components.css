@@ -8,8 +8,7 @@
 
 .logo-mark {
   display: block;
-  flex-shrink: 0;
-  object-fit: contain;
+  filter: drop-shadow(0 4px 10px var(--accent-glow));
 }
 
 .logo__word {
@@ -327,7 +326,7 @@
 .meta-pill {
   font-size: 11.5px;
   font-weight: 500;
-  color: rgba(244, 246, 243, 0.72);
+  color: var(--text-tertiary);
 }
 
 .meta-pill.is-live {
@@ -1407,7 +1406,7 @@
 
 .page-header__description {
   margin-top: 7px;
-  color: rgba(244, 246, 243, 0.76);
+  color: var(--text-tertiary);
   font-size: 13.5px;
   line-height: 1.5;
 }
