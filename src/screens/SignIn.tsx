@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, Monitor, ShieldCheck, UserRound, Zap } from "lucide-react";
+import { ArrowRight, Monitor, ShieldCheck, UserCircle as UserRound, Lightning as Zap } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { Logo, LogoMark } from "../components/Logo";
 import { TextField } from "../components/TextField";
@@ -46,7 +46,7 @@ export function SignInScreen() {
         <div className="auth__visual-inner">
           <div className="auth__eyebrow">
             <span className="auth__eyebrow-rule" aria-hidden="true" />
-            ParsecPlus for macOS
+            Nexus for macOS
           </div>
           <h1 className="auth__headline">
             Every screen.
@@ -137,7 +137,7 @@ export function SignInScreen() {
           <Logo size={26} className="auth__brand" />
           <div className="auth__form-head">
             <span className="auth__form-eyebrow">Local profile</span>
-            <h2>Welcome to ParsecPlus</h2>
+            <h2>Welcome to Nexus</h2>
             <p>
               Set up this Mac to connect to your computers. No email, password or account required
               — this profile stays on this device.

@@ -72,7 +72,7 @@ impl NativeInput {
                     self.release_all();
                 }
                 return Err(
-                    "Accessibility access is required for native input. Enable ParsecPlus in \
+                    "Accessibility access is required for native input. Enable Nexus in \
                      System Settings → Privacy & Security → Accessibility."
                         .to_string(),
                 );
@@ -116,7 +116,7 @@ impl NativeInput {
                 if unsafe { crate::mac_permissions::AXIsProcessTrusted() } == 0 {
                     return Err(
                         "Accessibility access is required before input can be armed. Enable \
-                         ParsecPlus in System Settings → Privacy & Security → Accessibility."
+                         Nexus in System Settings → Privacy & Security → Accessibility."
                             .to_string(),
                     );
                 }

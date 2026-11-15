@@ -562,7 +562,7 @@ pub(crate) fn local_device_name() -> String {
         .or_else(|_| std::env::var("HOSTNAME"))
         .ok()
         .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| "ParsecPlus host".to_string())
+        .unwrap_or_else(|| "Nexus host".to_string())
 }
 
 /// Best-effort LAN address: opening a UDP socket toward a TEST-NET address makes
@@ -686,7 +686,7 @@ pub fn native_host_start(
         let (ready_tx, ready_rx) = mpsc::channel();
 
         let handle = thread::Builder::new()
-            .name("parsecplus-host".to_string())
+            .name("nexus-host".to_string())
             .spawn(move || {
                 run_host(
                     listener,
@@ -959,7 +959,7 @@ fn run_host(
                 let session_stop = Arc::clone(&stop);
                 let peer = peer.to_string();
                 if let Err(error) = thread::Builder::new()
-                    .name("parsecplus-viewer".to_string())
+                    .name("nexus-viewer".to_string())
                     .spawn(move || {
                         serve_client(
                             &options,
@@ -1012,7 +1012,7 @@ fn start_relay_worker(
     let thread_host_stop = Arc::clone(host_stop);
     let thread_shared = Arc::clone(shared);
     match thread::Builder::new()
-        .name("parsecplus-relay".to_string())
+        .name("nexus-relay".to_string())
         .spawn(move || {
             run_relay_host(
                 target,
@@ -1289,7 +1289,7 @@ fn serve_client(
     #[cfg(target_os = "macos")]
     if unsafe { crate::mac_permissions::CGPreflightScreenCaptureAccess() } == 0 {
         let message = "The host needs Screen Recording permission. Open System Settings → \
-                       Privacy & Security → Screen Recording, enable ParsecPlus, relaunch the \
+                       Privacy & Security → Screen Recording, enable Nexus, relaunch the \
                        app, then start hosting again.";
         shared.set_error(message.to_string());
         shared.emit();

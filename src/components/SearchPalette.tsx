@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Link2,
-  Monitor,
-  Radio,
-  Search,
-  SearchX,
-  Settings,
-} from "lucide-react";
+import { Link as Link2, Monitor, Broadcast as Radio, MagnifyingGlass as Search, MagnifyingGlassMinus as SearchX, GearSix as Settings } from "@phosphor-icons/react";
 import { hotkeys } from "../lib/data";
 import { useApp } from "../lib/store";
 import type { RecentConnection, Screen } from "../lib/types";
@@ -92,7 +85,7 @@ export function SearchPalette({
     <Modal
       open={open}
       onClose={onClose}
-      title="Search ParsecPlus"
+      title="Search Nexus"
       description="Jump to a screen, a shortcut, or a recent connection."
       size="md"
       className="search-modal"
@@ -109,7 +102,7 @@ export function SearchPalette({
               chooseScreen(firstScreen.screen);
             }
           }}
-          aria-label="Search ParsecPlus"
+          aria-label="Search Nexus"
         />
       </div>
 

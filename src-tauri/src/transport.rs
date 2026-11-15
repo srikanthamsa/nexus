@@ -14,7 +14,7 @@ use std::{
 
 pub const DEFAULT_PORT: u16 = 39200;
 
-const PROLOGUE: &[u8] = b"parsecplus-direct-v1";
+const PROLOGUE: &[u8] = b"nexus-direct-v1";
 const MAX_NOISE_MESSAGE: usize = 65_535;
 const MAX_FRAME_BYTES: usize = 16 * 1024 * 1024;
 pub(crate) const MESSAGE_CONTROL: u8 = 1;
@@ -184,7 +184,7 @@ pub enum Control {
 pub fn pairing_psk(code: &str) -> Result<[u8; 32], String> {
     let normalized = normalize_pair_code(code)?;
     let mut digest = Sha256::new();
-    digest.update(b"parsecplus-pairing-v1\0");
+    digest.update(b"nexus-pairing-v1\0");
     digest.update(normalized.as_bytes());
     Ok(digest.finalize().into())
 }

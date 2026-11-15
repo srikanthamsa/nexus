@@ -1,6 +1,6 @@
-# ParsecPlus internet test guide
+# Nexus internet test guide
 
-A concrete procedure for testing a real ParsecPlus session between two Macs on different
+A concrete procedure for testing a real Nexus session between two Macs on different
 networks — for example Visakhapatnam ↔ Bengaluru or Mumbai. Run the same build on both Macs.
 
 The app is macOS-only today (the host and client both use ScreenCaptureKit/VideoToolbox/Metal).
@@ -10,16 +10,16 @@ right-click → **Open**, or **System Settings → Privacy & Security → Open A
 ## Quick path with Tailscale (recommended for this setup)
 
 You already run Tailscale and your friend is on the same tailnet, so no port forwarding and no
-STUN/TURN server is needed: Tailscale puts both Macs on the same virtual network, and ParsecPlus can
+STUN/TURN server is needed: Tailscale puts both Macs on the same virtual network, and Nexus can
 generate a direct connection string from the host's Tailscale address.
 
-1. Both Macs run the same ParsecPlus build and are joined to the Tailscale network. No account or
+1. Both Macs run the same Nexus build and are joined to the Tailscale network. No account or
    login is needed: on first launch choose **Set up this Mac** and enter a display name — this is a
    local profile that never leaves the device (there is no demo workspace or seeded data). You can
    change the name later under **Settings → Account** so the host's approval card is unambiguous. Confirm the
    host's tailnet IP with `tailscale ip -4` (this Mac: `100.125.242.28`) and check
    `tailscale status` says `Running`. On first
-   launch, allow ParsecPlus under **System Settings → Privacy & Security → Local Network** and, if
+   launch, allow Nexus under **System Settings → Privacy & Security → Local Network** and, if
    macOS asks, allow it to accept incoming connections in the firewall.
 2. **Host:** remote access is always on — no toggle. Open **Host**; the **Remote access** card
    shows **Live** and the listener address. Open **Host → Network → Share with a friend**; the card
@@ -45,7 +45,7 @@ one approval, stream.
 | Symptom | Check |
 | --- | --- |
 | Friend cannot reach the host | `tailscale status` shows `Running` on both and an IP in the same tailnet; `tailscale ping <host's Tailscale IP>` from the friend's Mac |
-| Connect times out | macOS firewall: allow **ParsecPlus** incoming connections; hosting must be on when the friend connects |
+| Connect times out | macOS firewall: allow **Nexus** incoming connections; hosting must be on when the friend connects |
 | Approve card never appears | The friend's client got past TCP but the host approval gate is on; the card is over any screen — also check the code was copied whole |
 | Transport says TCP | ICE over the Tailscale interface did not connect; the session still works over TCP. Re-run with both Macs on the same Tailscale network, and allow incoming connections |
 | Join code rejected | It is single-use and rotates; copy the current code from the Host screen again |
@@ -79,8 +79,8 @@ see the fallbacks below.
 
 ```bash
 npm run tauri build
-# output: src-tauri/target/release/bundle/dmg/ParsecPlus_0.1.0_aarch64.dmg
-#         src-tauri/target/release/bundle/macos/ParsecPlus.app
+# output: src-tauri/target/release/bundle/dmg/Nexus_0.1.0_aarch64.dmg
+#         src-tauri/target/release/bundle/macos/Nexus.app
 ```
 
 Send the DMG to your friend.
@@ -88,43 +88,43 @@ Send the DMG to your friend.
 ### macOS Gatekeeper (ad-hoc build)
 
 The build is ad-hoc signed, not notarized with an Apple Developer ID, so macOS blocks it after a
-download with messages like **“The application ‘ParsecPlus’ can’t be opened”** or “damaged”.
+download with messages like **“The application ‘Nexus’ can’t be opened”** or “damaged”.
 Fix it once on each Mac:
 
-1. Drag **ParsecPlus** into **Applications** first (do not run it from the mounted DMG).
+1. Drag **Nexus** into **Applications** first (do not run it from the mounted DMG).
 2. Open **Terminal** (Applications → Utilities → Terminal) and paste:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/ParsecPlus.app
-codesign --force --deep --sign - /Applications/ParsecPlus.app
-open /Applications/ParsecPlus.app
+xattr -dr com.apple.quarantine /Applications/Nexus.app
+codesign --force --deep --sign - /Applications/Nexus.app
+open /Applications/Nexus.app
 ```
 
 3. Answer the macOS prompts (Screen Recording, Local Network, incoming connections) and relaunch
    if the app asks for it.
 
 Alternative without Terminal: after one failed launch, open **System Settings → Privacy &
-Security**, scroll to Security, and click **Open Anyway** for ParsecPlus.
+Security**, scroll to Security, and click **Open Anyway** for Nexus.
 
 The current DMG is ad-hoc signed with a valid bundle signature, so either route works once the
 quarantine attribute is gone. An older copy transferred before signing was fixed reports
-**“The application ‘ParsecPlus’ can’t be opened”** and is repaired by the same two commands (the
+**“The application ‘Nexus’ can’t be opened”** and is repaired by the same two commands (the
 `codesign` line re-signs it locally). Never run the app from the mounted DMG; always copy it to
 Applications first.
 
 On both machines:
 
-1. Install **ParsecPlus**, launch it once, then open **Host** and grant **Screen Recording** when
+1. Install **Nexus**, launch it once, then open **Host** and grant **Screen Recording** when
    asked; macOS requires a relaunch after the grant before capture works. Because development
    builds are ad-hoc signed, **each rebuilt app counts as a new app to macOS**: if Screen Recording
-   was already on for an older copy, remove ParsecPlus from
+   was already on for an older copy, remove Nexus from
    **System Settings → Privacy & Security → Screen Recording** (select it, click −) and add the
-   new `/Applications/ParsecPlus.app` back, then relaunch. Otherwise the host loses capture
+   new `/Applications/Nexus.app` back, then relaunch. Otherwise the host loses capture
    permission while a friend connects, and the client reports a closed WebRTC session the moment
    you approve.
 2. For remote input, also grant **Accessibility**, enable **Allow remote input** while hosting,
    and keep the session armed. Input is off by default.
-3. Allow ParsecPlus through the macOS firewall if prompted (incoming connections).
+3. Allow Nexus through the macOS firewall if prompted (incoming connections).
 4. Optional sanity check on the same Wi-Fi first: host **Host → Network**, second Mac →
    **Connect directly** with the host's LAN address and code. If that fails, fix permissions
    before adding the internet hop.

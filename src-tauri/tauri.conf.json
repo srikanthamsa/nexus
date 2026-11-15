@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ParsecPlus",
+  "productName": "Nexus",
   "version": "0.1.0",
-  "identifier": "com.parsecplus.app",
+  "identifier": "com.nexus.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "ParsecPlus",
+        "title": "Nexus",
         "width": 1280,
         "height": 820,
         "minWidth": 1000,
@@ -22,7 +22,7 @@
         "resizable": true,
         "decorations": false,
         "fullscreen": false,
-        "backgroundColor": "#08090c"
+        "backgroundColor": "#080807"
       }
     ],
     "security": {
@@ -34,8 +34,8 @@
     "targets": "all",
     "category": "Productivity",
     "shortDescription": "Low-latency remote desktop",
-    "longDescription": "ParsecPlus is a clean-room remote desktop client and host built for fast, private access to every computer you own.",
-    "copyright": "ParsecPlus contributors",
+    "longDescription": "Nexus is a clean-room remote desktop client and host built for fast, private access to every computer you own.",
+    "copyright": "Nexus contributors",
     "macOS": {
       "minimumSystemVersion": "12.3",
       "signingIdentity": "-"

@@ -248,7 +248,7 @@ pub fn native_engine_start(
 
         let thread_running = Arc::clone(&running);
         let handle = thread::Builder::new()
-            .name("parsecplus-capture".to_string())
+            .name("nexus-capture".to_string())
             .spawn(move || {
                 run_engine(worker_app, options, thread_stop, thread_running, ready_tx);
             })

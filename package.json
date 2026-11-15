@@ -1,8 +1,8 @@
 {
-  "name": "parsecplus",
+  "name": "nexus",
   "private": true,
   "version": "0.1.0",
-  "description": "ParsecPlus — a clean-room, low-latency remote desktop client and host.",
+  "description": "Nexus — a clean-room, low-latency remote desktop client and host.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "lucide-react": "^1.61.0",

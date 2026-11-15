@@ -1,4 +1,4 @@
-# ParsecPlus roadmap
+# Nexus roadmap
 
 A re-laid plan after the first real cross-city session (Vizag host ↔ Mumbai/Bengaluru client over
 Tailscale) and the Phase 3.11 multi-viewer/presence batch.
@@ -69,7 +69,7 @@ Ordered by user-visible value per unit of risk.
   16-bit sticks) instead of a generic 6-axis layout, so macOS/SDL/Steam label LB/RB, LS/RS,
   Back/Start and Guide by their correct Xbox positions instead of shifting them. Report mapping
   tests cover the exact labels from the friend-controller feedback.
-- Native macOS now prefers **OpenJoystickDriver** when available: ParsecPlus connects to its
+- Native macOS now prefers **OpenJoystickDriver** when available: Nexus connects to its
   authenticated local endpoint, publishes one pad per viewer (four remote pads; the host's own
   physical controller is player 1), and does not create HID devices itself. This avoids SIP/AMFI
   changes and works on stock macOS. The in-process virtual-HID backend remains the fallback.

@@ -1,6 +1,6 @@
 export type Screen = "computers" | "friends" | "host" | "teams" | "arcade" | "settings";
 
-export type Accent = "violet" | "aurora" | "ember" | "ocean";
+export type Accent = "nexus";
 
 /** Local, account-less profile for this Mac. */
 export interface User {

@@ -1,21 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import {
-  AlertTriangle,
-  Check,
-  Clipboard,
-  Copy,
-  Gamepad2,
-  Info,
-  Keyboard,
-  LockKeyhole,
-  Monitor,
-  MonitorUp,
-  MousePointer2,
-  Play,
-  Radio,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+import { Warning as AlertTriangle, Check, Clipboard, Copy, GameController as Gamepad2, Info, Keyboard, LockKey as LockKeyhole, Monitor, MonitorArrowUp as MonitorUp, CursorClick as MousePointer2, Play, Broadcast as Radio, ArrowsClockwise as RefreshCw, ShieldCheck } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { PageHeader } from "../components/PageHeader";
 import { Select } from "../components/Select";
@@ -447,7 +431,7 @@ export function HostScreen({
       if (fresh) setPerms(fresh);
       if (kind === "accessibility") {
         push({
-          title: "Approve ParsecPlus in System Settings",
+          title: "Approve Nexus in System Settings",
           description: "Enable the toggle, then return here. Status refreshes automatically.",
           tone: "info",
         });
@@ -455,8 +439,8 @@ export function HostScreen({
         push({
           title: result ? "Permission granted" : "Permission requested",
           description: result
-            ? "ParsecPlus can now use this capability."
-            : "Approve ParsecPlus in System Settings, then return here.",
+            ? "Nexus can now use this capability."
+            : "Approve Nexus in System Settings, then return here.",
           tone: result ? "success" : "info",
         });
       }
@@ -679,7 +663,7 @@ export function HostScreen({
         push({
           title: "Screen Recording permission needed",
           description:
-            "Approve ParsecPlus in System Settings, then relaunch the app before starting a live preview.",
+            "Approve Nexus in System Settings, then relaunch the app before starting a live preview.",
           tone: "info",
         });
         return;
@@ -814,7 +798,7 @@ export function HostScreen({
               {!hostRunning
                 ? "Turn on remote access to get a code."
                 : joinCode
-                  ? "Send this to a friend. They paste it in ParsecPlus."
+                  ? "Send this to a friend. They paste it in Nexus."
                   : (joinCodeError ?? "Creating code…")}
             </p>
           </div>

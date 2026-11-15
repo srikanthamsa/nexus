@@ -12,7 +12,7 @@ use std::{
 };
 
 pub const DEFAULT_RELAY_PORT: u16 = 39210;
-pub const SERVICE_TYPE: &str = "_parsecplus._tcp.local.";
+pub const SERVICE_TYPE: &str = "_nexus._tcp.local.";
 
 const RELAY_CONNECT_TIMEOUT: Duration = Duration::from_secs(6);
 const RELAY_JOIN_TIMEOUT: Duration = Duration::from_secs(8);
@@ -327,7 +327,7 @@ impl DiscoveryAdvertisement {
         let version = env!("CARGO_PKG_VERSION");
         let info = ServiceInfo::new(
             SERVICE_TYPE,
-            &format!("parsecplus-{id}"),
+            &format!("nexus-{id}"),
             &local_hostname(),
             (),
             port,
@@ -433,7 +433,7 @@ fn pick_address(resolved: &mdns_sd::ResolvedService) -> Option<String> {
 pub fn local_device_id() -> String {
     let source = machine_hostname();
     let mut digest = Sha256::new();
-    digest.update(b"parsecplus-device-v1\0");
+    digest.update(b"nexus-device-v1\0");
     digest.update(source.as_bytes());
     hex(&digest.finalize()[..8])
 }
@@ -446,7 +446,7 @@ fn machine_hostname() -> String {
         .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
         .filter(|value| !value.is_empty())
         .or_else(|| std::env::var("HOSTNAME").ok())
-        .unwrap_or_else(|| "parsecplus".to_string())
+        .unwrap_or_else(|| "nexus".to_string())
 }
 
 fn local_hostname() -> String {
@@ -457,7 +457,7 @@ fn local_hostname() -> String {
         .filter(|output| output.status.success())
         .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| format!("parsecplus-{}", &local_device_id()[..6]));
+        .unwrap_or_else(|| format!("nexus-{}", &local_device_id()[..6]));
     let label: String = raw
         .chars()
         .map(|character| {
@@ -471,7 +471,7 @@ fn local_hostname() -> String {
         .collect();
     let label = label.trim_matches('-');
     if label.is_empty() {
-        format!("parsecplus-{}.local.", &local_device_id()[..6])
+        format!("nexus-{}.local.", &local_device_id()[..6])
     } else {
         format!("{label}.local.")
     }
@@ -488,7 +488,7 @@ mod tests {
     use crate::transport::{
         self, handshake_initiator, handshake_responder, Control, SecureChannel,
     };
-    use parsecplus_relay as relay;
+    use nexus_relay as relay;
     use std::{
         net::TcpListener,
         sync::{

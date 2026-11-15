@@ -69,7 +69,7 @@ use webrtc::{
     runtime::Runtime,
 };
 
-const CONTROL_LABEL: &str = "parsecplus-control";
+const CONTROL_LABEL: &str = "nexus-control";
 const DEFAULT_BIND: &str = "0.0.0.0:0";
 const MAX_DATA_CHANNEL_MESSAGE: usize = 16_384;
 const DATA_CHANNEL_SEND_BUFFER: usize = 2 * 1024 * 1024;
@@ -300,7 +300,7 @@ impl RatePlan {
 
 /// STUN/TURN configuration shared by hosting and connecting.
 ///
-/// Empty by default: ParsecPlus contacts no third-party service unless the
+/// Empty by default: Nexus contacts no third-party service unless the
 /// operator types an address here. A STUN server only answers "what does my
 /// NAT look like from outside"; a TURN server relays encrypted media when a
 /// direct UDP path cannot be punched. TURN needs credentials, STUN does not.
@@ -425,7 +425,7 @@ fn bridge() -> &'static tokio::runtime::Runtime {
     BRIDGE.get_or_init(|| {
         tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
-            .thread_name("parsecplus-webrtc")
+            .thread_name("nexus-webrtc")
             .enable_all()
             .build()
             .expect("failed to build the WebRTC bridge runtime")
@@ -761,9 +761,9 @@ impl WebRtcEndpoint {
         let fec_ssrc = rng.next_u32();
         let codec = hevc_codec();
         let track = MediaStreamTrack::new(
-            "parsecplus-video-stream".to_string(),
-            "parsecplus-video-track".to_string(),
-            "parsecplus-video".to_string(),
+            "nexus-video-stream".to_string(),
+            "nexus-video-track".to_string(),
+            "nexus-video".to_string(),
             RtpCodecKind::Video,
             vec![RTCRtpEncodingParameters {
                 rtp_coding_parameters: RTCRtpCodingParameters {
@@ -1039,7 +1039,7 @@ impl VideoWriter {
         let failure = Arc::new(Mutex::new(None));
         let thread_failure = failure.clone();
         let _ = std::thread::Builder::new()
-            .name("parsecplus-rtp-video".to_string())
+            .name("nexus-rtp-video".to_string())
             .spawn(move || {
                 while let Ok(sample) = receiver.recv() {
                     let written = drive(async {

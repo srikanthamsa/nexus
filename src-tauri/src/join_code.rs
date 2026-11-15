@@ -86,12 +86,12 @@ pub fn decode(value: &str) -> Result<JoinCode, String> {
     }
     let Some(prefix) = trimmed.get(..PREFIX.len()) else {
         return Err(format!(
-            "This is not a ParsecPlus join code: it should start with {PREFIX}."
+            "This is not a Nexus join code: it should start with {PREFIX}."
         ));
     };
     if !prefix.eq_ignore_ascii_case(PREFIX) {
         return Err(format!(
-            "This is not a ParsecPlus join code: it should start with {PREFIX}."
+            "This is not a Nexus join code: it should start with {PREFIX}."
         ));
     }
 

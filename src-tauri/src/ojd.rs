@@ -1,7 +1,7 @@
 //! OpenJoystickDriver (OJD) endpoint client.
 //!
 //! OJD is a separately signed macOS app that holds the restricted virtual-HID
-//! entitlement. Rather than creating HID devices ourselves, ParsecPlus connects
+//! entitlement. Rather than creating HID devices ourselves, Nexus connects
 //! to its local AF_UNIX endpoint and publishes one virtual pad per viewer.
 //! This is the native-controller path that works without SIP/AMFI changes.
 //!
@@ -286,7 +286,7 @@ fn ojd_error(code: &str, message: Option<&str>) -> String {
     let reason = match code {
         "E1001" => "the OpenJoystickDriver endpoint is disabled",
         "E1002" => "the OpenJoystickDriver token is missing the Control scope",
-        "E1009" | "E1010" | "E1011" => "this ParsecPlus build uses an unsupported OJD API version",
+        "E1009" | "E1010" | "E1011" => "this Nexus build uses an unsupported OJD API version",
         _ => "OpenJoystickDriver refused the virtual gamepad",
     };
     match message.filter(|value| !value.is_empty()) {

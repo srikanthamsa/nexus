@@ -1,15 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import {
-  Copy,
-  Info,
-  Keyboard,
-  LogOut,
-  Monitor,
-  Palette,
-  ShieldCheck,
-  Trash2,
-  User,
-} from "lucide-react";
+import { Copy, Info, Keyboard, SignOut as LogOut, Monitor, Palette, ShieldCheck, Trash as Trash2, User } from "@phosphor-icons/react";
 import { Avatar } from "../components/Avatar";
 import { Button } from "../components/Button";
 import { Kbd } from "../components/Kbd";
@@ -116,7 +106,7 @@ export function SettingsScreen() {
 
   const copyDiagnostics = async () => {
     const payload = {
-      app: "ParsecPlus",
+      app: "Nexus",
       version: system?.appVersion ?? "0.1.0",
       os: system?.os ?? "unknown",
       osVersion: system?.osVersion ?? "unknown",
@@ -273,13 +263,13 @@ export function SettingsScreen() {
 
           {tab === "about" && (
             <>
-              <SettingsSection title="ParsecPlus" description="Remote access for your Mac.">
+              <SettingsSection title="Nexus" description="Remote access for your Mac.">
                 <div className="about-hero">
                   <div className="about-hero__mark">
                     <LogoMark size={26} />
                   </div>
                   <div className="about-hero__copy">
-                    <p>ParsecPlus</p>
+                    <p>Nexus</p>
                     <span>{system?.appVersion ?? "0.1.0"} · macOS</span>
                   </div>
                 </div>
@@ -330,13 +320,13 @@ export function SettingsScreen() {
                 <div className="about-note">
                   <ShieldCheck size={18} />
                   <p>
-                    ParsecPlus is an independent, clean-room project. It is not affiliated with
+                    Nexus is an independent, clean-room project. It is not affiliated with
                     Parsec Technologies.
                   </p>
                 </div>
                 <div className="about-note">
                   <Monitor size={18} />
-                  <p>Built for macOS. Friends can connect from another ParsecPlus install.</p>
+                  <p>Built for macOS. Friends can connect from another Nexus install.</p>
                 </div>
               </SettingsSection>
             </>
@@ -375,7 +365,7 @@ export function SettingsScreen() {
           <Trash2 size={18} />
         </div>
         <p className="confirm-copy">
-          ParsecPlus returns to setup and asks you to name this Mac again.
+          Nexus returns to setup and asks you to name this Mac again.
         </p>
       </Modal>
     </div>

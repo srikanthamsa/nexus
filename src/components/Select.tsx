@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { CaretDown as ChevronDown } from "@phosphor-icons/react";
 import type { SelectHTMLAttributes } from "react";
 import { cn } from "../lib/utils";
 

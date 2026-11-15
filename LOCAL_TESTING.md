@@ -1,7 +1,7 @@
-# Testing ParsecPlus on one Mac
+# Testing Nexus on one Mac
 
 You do **not** need a second Mac, a friend, or a VM for most of the app. The app has no
-single-instance lock, so you can run **two copies of ParsecPlus side by side**: one as the
+single-instance lock, so you can run **two copies of Nexus side by side**: one as the
 host, one as the client. The client copy is effectively a “simulated Mac” — it uses the same
 real host listener, real ScreenCaptureKit capture, real HEVC encode/decode, real Noise
 handshake, real approval request and real remote session.
@@ -13,12 +13,12 @@ two different GPUs — for those you need a second physical machine (or a macOS 
 
 ## Recommended: two app copies on this Mac
 
-1. Install the current DMG to `/Applications/ParsecPlus.app` first.
-2. Quit ParsecPlus if it is running.
+1. Install the current DMG to `/Applications/Nexus.app` first.
+2. Quit Nexus if it is running.
 3. Make a second copy (do this in Terminal):
 
    ```bash
-   ditto /Applications/ParsecPlus.app /Applications/ParsecPlus-LocalTest.app
+   ditto /Applications/Nexus.app /Applications/Nexus-LocalTest.app
    ```
 
    Or run the helper:
@@ -30,13 +30,13 @@ two different GPUs — for those you need a second physical machine (or a macOS 
 4. Open the second copy as a separate process:
 
    ```bash
-   open -n /Applications/ParsecPlus-LocalTest.app
+   open -n /Applications/Nexus-LocalTest.app
    ```
 
    If LaunchServices refuses to open a duplicate, launch the binary directly:
 
    ```bash
-   /Applications/ParsecPlus-LocalTest.app/Contents/MacOS/parsecplus &
+   /Applications/Nexus-LocalTest.app/Contents/MacOS/nexus &
    ```
 
 5. **Host app** (the original): finish **Set up this Mac** if needed. Open **Host**, turn
@@ -65,12 +65,12 @@ two different GPUs — for those you need a second physical machine (or a macOS 
 - Use the **direct connection** string or `127.0.0.1:39200` with the invite code. A join code that
   contains this Mac’s LAN/Tailscale address also works locally because the address is reachable.
 - If you have no external display, the **Shared display** switcher stays hidden (only one display).
-- macOS may show “ParsecPlus is already running” if you use Finder’s normal Open; always use
+- macOS may show “Nexus is already running” if you use Finder’s normal Open; always use
   `open -n` or the binary launch above.
 - Delete the copy when done:
 
   ```bash
-  rm -rf /Applications/ParsecPlus-LocalTest.app
+  rm -rf /Applications/Nexus-LocalTest.app
   ```
 
 ## Alternative: a macOS VM
@@ -78,7 +78,7 @@ two different GPUs — for those you need a second physical machine (or a macOS 
 A macOS guest VM (UTM/Parallels/VMware Fusion on Apple Silicon) can act as a second machine, but it
 needs a macOS installer and a second Screen Recording grant, and it is much slower for video. This
 is only worth it if you specifically need to test a second OS instance. Linux/Windows clients are
-not built yet, so a Linux VM cannot act as a ParsecPlus client today.
+not built yet, so a Linux VM cannot act as a Nexus client today.
 
 ## Alternative: automated protocol tests
 
@@ -96,9 +96,9 @@ path or the two-window approval UI — that is what the two-copy test above is f
 
 | Symptom | Fix |
 | --- | --- |
-| Second copy won’t open | Use `open -n` or launch `Contents/MacOS/parsecplus` directly |
+| Second copy won’t open | Use `open -n` or launch `Contents/MacOS/nexus` directly |
 | “Could not start remote access” in host | Port 39200 is already in use (other copy hosting); turn remote access off in one copy |
-| Client connects but no video | Host needs Screen Recording; remove/re-add ParsecPlus in System Settings → Privacy & Security → Screen Recording and relaunch that copy |
+| Client connects but no video | Host needs Screen Recording; remove/re-add Nexus in System Settings → Privacy & Security → Screen Recording and relaunch that copy |
 | Request never appears | Server and client are on different app copies; the approval card is in the host copy’s window |
 | Display switcher missing | Only one display is attached |
-| Copy looks unsigned/quarantined | `xattr -dr com.apple.quarantine /Applications/ParsecPlus-LocalTest.app` and `codesign --force --deep --sign - /Applications/ParsecPlus-LocalTest.app` |
+| Copy looks unsigned/quarantined | `xattr -dr com.apple.quarantine /Applications/Nexus-LocalTest.app` and `codesign --force --deep --sign - /Applications/Nexus-LocalTest.app` |

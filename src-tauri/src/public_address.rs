@@ -654,7 +654,7 @@ mod tests {
         let mapped: SocketAddr = "198.51.100.9:41300".parse().expect("mapped");
         let xor_mapped: SocketAddr = "203.0.113.7:12345".parse().expect("xor mapped");
         let packet = response(&[
-            (0x8022, b"parsecplus-test".to_vec()), // SOFTWARE, ignored
+            (0x8022, b"nexus-test".to_vec()), // SOFTWARE, ignored
             (ATTR_MAPPED_ADDRESS, plain_value(mapped.port(), mapped.ip())),
             (
                 ATTR_XOR_MAPPED_ADDRESS,

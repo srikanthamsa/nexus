@@ -284,7 +284,7 @@ pub fn serve(listener: TcpListener, stop: Arc<AtomicBool>) {
             Ok((stream, _peer)) => {
                 let rooms = Arc::clone(&rooms);
                 let _ = thread::Builder::new()
-                    .name("parsecplus-relay-session".to_string())
+                    .name("nexus-relay-session".to_string())
                     .spawn(move || handle_connection(stream, rooms));
             }
             Err(error) if error.kind() == ErrorKind::WouldBlock => {

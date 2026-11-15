@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Clock3,
-  Cpu,
-  Link2,
-  Monitor,
-  MonitorUp,
-  Plus,
-  Star,
-} from "lucide-react";
+import { Clock as Clock3, Cpu, Link as Link2, Monitor, MonitorArrowUp as MonitorUp, Plus, Star } from "@phosphor-icons/react";
 import { Button, IconButton } from "../components/Button";
 import { PageHeader } from "../components/PageHeader";
 import { getSystemInfo } from "../lib/native";
@@ -38,7 +30,7 @@ function SavedCard({
   onFavorite: () => void;
 }) {
   return (
-    <article className="computer-card theme-cyan">
+    <article className="computer-card theme-nexus">
       <div className="computer-card__head">
         <span className="computer-card__glyph">
           <MonitorUp size={19} />
@@ -55,7 +47,7 @@ function SavedCard({
             label={entry.favorite ? "Remove from favorites" : "Add to favorites"}
             className={cn(entry.favorite && "is-favorited")}
             active={Boolean(entry.favorite)}
-            icon={<Star size={14} fill={entry.favorite ? "currentColor" : "none"} />}
+            icon={<Star size={14} weight={entry.favorite ? "fill" : "regular"} />}
             onClick={onFavorite}
           />
         </div>
@@ -173,7 +165,7 @@ export function ComputersScreen({
             <span className="section-head__count">1</span>
           </div>
           <div className="computer-grid">
-            <article className="computer-card theme-violet">
+            <article className="computer-card theme-nexus">
               <div className="computer-card__head">
                 <span className="computer-card__glyph">
                   <Monitor size={19} />

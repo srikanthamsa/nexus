@@ -1,4 +1,4 @@
-import { Bell, LogOut, Search, Settings, ShieldCheck } from "lucide-react";
+import { Bell, SignOut as LogOut, MagnifyingGlass as Search, GearSix as Settings, ShieldCheck } from "@phosphor-icons/react";
 import { useApp } from "../lib/store";
 import type { Screen } from "../lib/types";
 import { cn } from "../lib/utils";

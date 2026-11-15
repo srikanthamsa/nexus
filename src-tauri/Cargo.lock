@@ -2637,6 +2637,46 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
+name = "nexus"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.22.1",
+ "bytes",
+ "core-foundation",
+ "core-graphics-types",
+ "if-addrs",
+ "jpeg-encoder",
+ "macos-media-toolkit",
+ "mdns-sd",
+ "metal",
+ "nexus-relay",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "objc2-quartz-core",
+ "rand_core 0.6.4",
+ "rtc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "snow",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "tokio",
+ "webrtc",
+]
+
+[[package]]
+name = "nexus-relay"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "nix"
 version = "0.31.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3029,46 +3069,6 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-link",
-]
-
-[[package]]
-name = "parsecplus"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.22.1",
- "bytes",
- "core-foundation",
- "core-graphics-types",
- "if-addrs",
- "jpeg-encoder",
- "macos-media-toolkit",
- "mdns-sd",
- "metal",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "objc2-quartz-core",
- "parsecplus-relay",
- "rand_core 0.6.4",
- "rtc",
- "serde",
- "serde_json",
- "sha2",
- "snow",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "tokio",
- "webrtc",
-]
-
-[[package]]
-name = "parsecplus-relay"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]

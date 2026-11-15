@@ -21,7 +21,7 @@ export function ConnectWarp({
         : "Entering direct session";
 
   return createPortal(
-    <div className="connect-warp theme-violet" aria-hidden="true">
+    <div className="connect-warp theme-nexus" aria-hidden="true">
       {!reduceMotion && <WarpField />}
       <span className="connect-warp__label">{label}</span>
     </div>,

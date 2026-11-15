@@ -269,7 +269,7 @@ pub fn native_client_connect(
     let worker_app = app.clone();
 
     let handle = thread::Builder::new()
-        .name("parsecplus-client".to_string())
+        .name("nexus-client".to_string())
         .spawn(move || {
             run_client(
                 worker_app,

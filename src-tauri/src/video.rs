@@ -244,7 +244,7 @@ impl VideoSurface {
         let shared = Arc::clone(&self.shared);
         let app_for_thread = app.clone();
         let handle = thread::Builder::new()
-            .name("parsecplus-video".to_string())
+            .name("nexus-video".to_string())
             .spawn(move || {
                 if let Err(message) = run_renderer(layer, shared) {
                     let _ = app_for_thread.emit(VIDEO_ERROR_EVENT, VideoErrorPayload { message });

@@ -1,4 +1,4 @@
-import { UsersRound } from "lucide-react";
+import { UsersThree as UsersRound } from "@phosphor-icons/react";
 import { PageHeader } from "../components/PageHeader";
 
 export function TeamsScreen() {

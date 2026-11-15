@@ -25,7 +25,7 @@ export const seedData: AppData = {
     mediaPort: 39201,
   },
   settings: {
-    accent: "violet",
+    accent: "nexus",
     reduceMotion: false,
     compact: false,
     alwaysOnTop: false,
@@ -51,13 +51,6 @@ export const seedData: AppData = {
     inputMonitoring: false,
   },
 };
-
-export const accents = [
-  { id: "violet", label: "Ion", colors: ["#8b7cff", "#c084fc"] },
-  { id: "aurora", label: "Aurora", colors: ["#3ddc97", "#43c7ff"] },
-  { id: "ember", label: "Ember", colors: ["#ff9f5a", "#ff6b7a"] },
-  { id: "ocean", label: "Ocean", colors: ["#4ea8ff", "#6ee7f9"] },
-] as const;
 
 export const hotkeys = [
   { keys: ["⌘", "⇧", "O"], label: "Show session overlay" },

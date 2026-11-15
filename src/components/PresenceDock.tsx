@@ -1,14 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Clock3,
-  Gamepad2,
-  Keyboard,
-  MousePointer2,
-  Power,
-  Radio,
-  ShieldCheck,
-  Wifi,
-} from "lucide-react";
+import { Clock as Clock3, GameController as Gamepad2, Keyboard, CursorClick as MousePointer2, Power, Broadcast as Radio, ShieldCheck, WifiHigh as Wifi } from "@phosphor-icons/react";
 import {
   getNativeHostStatus,
   isTauri,
@@ -37,7 +28,7 @@ function waitLabel(seconds: number): string {
 }
 
 function deviceName(entry: { owner: string; device: string }): string {
-  return entry.owner || entry.device || "A ParsecPlus device";
+  return entry.owner || entry.device || "A Nexus device";
 }
 
 export function PresenceDock({ compact = false }: { compact?: boolean }) {

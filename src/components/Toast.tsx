@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
+import { WarningCircle as AlertCircle, CheckCircle as CheckCircle2, Info, X } from "@phosphor-icons/react";
 import type { ToastOptions } from "../lib/types";
 import { cn } from "../lib/utils";
 

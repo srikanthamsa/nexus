@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>ParsecPlus finds nearby computers on your local network so you can start direct, end-to-end encrypted sessions.</string>
+	<string>Nexus finds nearby computers on your local network so you can start direct, end-to-end encrypted sessions.</string>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_parsecplus._tcp</string>
+		<string>_nexus._tcp</string>
 	</array>
 </dict>
 </plist>

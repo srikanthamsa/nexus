@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Check,
-  KeyRound,
-  Link2,
-  Monitor,
-  Radar,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+import { Check, Key as KeyRound, Link as Link2, Monitor, Crosshair as Radar, ArrowsClockwise as RefreshCw, ShieldCheck } from "@phosphor-icons/react";
 import {
   buildIceSettings,
   connectNativeClient,

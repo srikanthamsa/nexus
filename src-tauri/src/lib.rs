@@ -369,7 +369,7 @@ pub fn run() {
 
     let app = builder
         .build(tauri::generate_context!())
-        .expect("error while running ParsecPlus");
+        .expect("error while running Nexus");
 
     app.run(|handle, event| {
         if let tauri::RunEvent::Exit = event {

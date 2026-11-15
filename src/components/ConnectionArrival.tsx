@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Check } from "lucide-react";
+import { Check } from "@phosphor-icons/react";
 import { cn } from "../lib/utils";
 
 export function ConnectionArrival({
@@ -38,7 +38,7 @@ export function ConnectionArrival({
       <span className="connection-arrival__ring connection-arrival__ring--c" aria-hidden="true" />
       <div className="connection-arrival__lockup">
         <span className="connection-arrival__mark">
-          <Check size={17} strokeWidth={2.4} />
+          <Check size={17} weight="bold" />
         </span>
         <p className="connection-arrival__eyebrow">{eyebrow}</p>
         <h2>{title}</h2>

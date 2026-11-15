@@ -1,4 +1,4 @@
-import { Clock3, Cloud, Gamepad2, Trophy, UsersRound } from "lucide-react";
+import { Clock as Clock3, Cloud, GameController as Gamepad2, Trophy, UsersThree as UsersRound } from "@phosphor-icons/react";
 import { PageHeader } from "../components/PageHeader";
 
 const tiles = [
@@ -27,7 +27,7 @@ export function ArcadeScreen() {
     <div className="screen arcade-screen">
       <PageHeader
         title="Arcade"
-        description="Play together, right from a ParsecPlus session."
+        description="Play together, right from a Nexus session."
         meta={<span className="chip">Coming soon</span>}
       />
 
@@ -36,7 +36,7 @@ export function ArcadeScreen() {
         <div className="arcade-cabinet" aria-hidden="true">
           <div className="arcade-cabinet__marquee">ARCADE</div>
           <div className="arcade-cabinet__screen">
-            <Gamepad2 size={44} strokeWidth={1.5} />
+            <Gamepad2 size={44} weight="regular" />
           </div>
           <div className="arcade-cabinet__controls">
             <span className="arcade-cabinet__stick" />

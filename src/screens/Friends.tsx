@@ -1,4 +1,4 @@
-import { Link2, Users } from "lucide-react";
+import { Link as Link2, Users } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { PageHeader } from "../components/PageHeader";
 

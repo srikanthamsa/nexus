@@ -1,19 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import {
-  Activity,
-  Gauge,
-  Globe,
-  Loader2,
-  Maximize2,
-  Minimize2,
-  Monitor,
-  MonitorPlay,
-  MoreHorizontal,
-  MousePointer2,
-  Play,
-  Power,
-  X,
-} from "lucide-react";
+import { Pulse as Activity, Gauge, GlobeHemisphereWest as Globe, CircleNotch as Loader2, CornersOut as Maximize2, CornersIn as Minimize2, Monitor, MonitorPlay, DotsThree as MoreHorizontal, CursorClick as MousePointer2, Play, Power, X } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { Kbd } from "../components/Kbd";
 import { LogoMark } from "../components/Logo";

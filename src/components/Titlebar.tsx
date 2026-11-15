@@ -1,4 +1,4 @@
-import { Maximize2, Minus, X } from "lucide-react";
+import { CornersOut as Maximize2, Minus, X } from "@phosphor-icons/react";
 import { LogoMark } from "./Logo";
 import { useToast } from "./Toast";
 import { windowAction } from "../lib/native";
@@ -36,7 +36,7 @@ export function Titlebar({ title, className }: { title?: string; className?: str
             aria-label="Close window"
             onClick={() => void runWindowAction("close")}
           >
-            <X size={8} strokeWidth={2.5} />
+            <X size={8} weight="bold" />
           </button>
           <button
             type="button"
@@ -44,7 +44,7 @@ export function Titlebar({ title, className }: { title?: string; className?: str
             aria-label="Minimize window"
             onClick={() => void runWindowAction("minimize")}
           >
-            <Minus size={8} strokeWidth={2.5} />
+            <Minus size={8} weight="bold" />
           </button>
           <button
             type="button"
@@ -52,12 +52,12 @@ export function Titlebar({ title, className }: { title?: string; className?: str
             aria-label="Maximize window"
             onClick={() => void runWindowAction("maximize")}
           >
-            <Maximize2 size={7} strokeWidth={2.5} />
+            <Maximize2 size={7} weight="bold" />
           </button>
         </div>
         <div className="titlebar__brand" data-tauri-drag-region>
           <LogoMark size={16} />
-          <span>ParsecPlus</span>
+          <span>Nexus</span>
         </div>
       </div>
 

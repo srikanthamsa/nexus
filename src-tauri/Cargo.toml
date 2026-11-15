@@ -1,12 +1,12 @@
 [package]
-name = "parsecplus"
+name = "nexus"
 version = "0.1.0"
-description = "ParsecPlus — low-latency remote desktop client and host"
-authors = ["ParsecPlus contributors"]
+description = "Nexus — low-latency remote desktop client and host"
+authors = ["Nexus contributors"]
 edition = "2021"
 
 [lib]
-name = "parsecplus_lib"
+name = "nexus_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -67,4 +67,4 @@ strip = true
 strip = false
 
 [dev-dependencies]
-parsecplus-relay = { path = "../relay" }
+nexus-relay = { path = "../relay" }

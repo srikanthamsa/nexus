@@ -1,8 +1,8 @@
-# ParsecPlus
+# Nexus
 
 A clean-room, low-latency remote desktop client and host for macOS, with a web preview fallback. Built with Tauri 2, React 19, TypeScript, ScreenCaptureKit, and VideoToolbox.
 
-> **Independence notice.** ParsecPlus is an independent clean-room project. It is not affiliated with, endorsed by, or derived from Parsec Technologies. All interface design, artwork, and code in this repository are original.
+> **Independence notice.** Nexus is an independent clean-room project. It is not affiliated with, endorsed by, or derived from Parsec Technologies. All interface design, artwork, and code in this repository are original.
 
 ## Status
 
@@ -10,9 +10,9 @@ A clean-room, low-latency remote desktop client and host for macOS, with a web p
 
 **Phase 2 — capture, encode, input (implemented on macOS).** The native app captures a display with ScreenCaptureKit, encodes with the hardware HEVC encoder through VideoToolbox, and streams JPEG preview frames into the live session view at a capped preview rate. Capture and encode metrics are measured in Rust and surfaced in the HUD and performance panel. A guarded CGEvent input backend is implemented behind Accessibility permission and explicit arming; it is intentionally not wired into local preview.
 
-**Phase 3 — encrypted direct transport (implemented on macOS).** A ParsecPlus host can accept one direct client on the local network and stream hardware HEVC video over an authenticated, encrypted channel: an RTP video track over UDP when ICE connects, with the Noise-encrypted TCP session as signaling and fallback. The client decodes with hardware HEVC and presents decoded frames directly on a native Metal surface at the stream's full resolution, with real round-trip and decode telemetry. Remote input is forwarded only when the host explicitly allows it, and every injected event still requires Accessibility trust and an armed session.
+**Phase 3 — encrypted direct transport (implemented on macOS).** A Nexus host can accept one direct client on the local network and stream hardware HEVC video over an authenticated, encrypted channel: an RTP video track over UDP when ICE connects, with the Noise-encrypted TCP session as signaling and fallback. The client decodes with hardware HEVC and presents decoded frames directly on a native Metal surface at the stream's full resolution, with real round-trip and decode telemetry. Remote input is forwarded only when the host explicitly allows it, and every injected event still requires Accessibility trust and an armed session.
 
-**Phase 3.5 — reachability foundation (implemented).** Hosts advertise themselves on the local network over Bonjour (`_parsecplus._tcp`), and the Direct connect dialog lists nearby hosts automatically. A separate, self-hostable relay crate adds room-based rendezvous for peers that cannot reach each other directly. The relay only pairs two sockets and forwards opaque bytes; the Noise handshake still authenticates both peers with the pairing code, and the host approval gate still runs.
+**Phase 3.5 — reachability foundation (implemented).** Hosts advertise themselves on the local network over Bonjour (`_nexus._tcp`), and the Direct connect dialog lists nearby hosts automatically. A separate, self-hostable relay crate adds room-based rendezvous for peers that cannot reach each other directly. The relay only pairs two sockets and forwards opaque bytes; the Noise handshake still authenticates both peers with the pairing code, and the host approval gate still runs.
 
 **Phase 3.6 — adaptive streaming (implemented on macOS).** The client measures frame delivery, arrival jitter, and decode continuity, and sends that health report back over the encrypted channel once per second. On the TCP fallback, the host uses it to retarget the hardware HEVC encoder between 2 Mbps and the configured maximum, stepping down quickly under congestion and recovering after stable windows. Missing frames and decode failures trigger an immediate keyframe request.
 
@@ -60,7 +60,7 @@ A clean-room, low-latency remote desktop client and host for macOS, with a web p
 
 ## Live preview
 
-Open **Host → Start live preview** in the native app. ParsecPlus asks for Screen Recording access if it is missing; macOS requires the app to be relaunched after that grant before capture can start. Frames stay on the Mac — nothing is sent over a network.
+Open **Host → Start live preview** in the native app. Nexus asks for Screen Recording access if it is missing; macOS requires the app to be relaunched after that grant before capture can start. Frames stay on the Mac — nothing is sent over a network.
 
 The preview runs at 12 fps and up to 1280 px wide, so the HUD reflects real capture and HEVC encode timings without saturating the session. Ending the preview stops the engine and clears its state. In the browser fallback the same action shows a desktop-only notice instead of starting capture.
 
@@ -76,9 +76,9 @@ Current limits: the host still caps the requested refresh rate at 60 fps. Frames
 
 ## Nearby, direct, and relay sessions
 
-A session connects two ParsecPlus apps over the local network or through a relay. Direct sessions first try an authenticated WebRTC path over UDP and fall back to the Noise-encrypted TCP session; relay sessions always use TCP, because the relay forwards opaque bytes rather than offering a direct path.
+A session connects two Nexus apps over the local network or through a relay. Direct sessions first try an authenticated WebRTC path over UDP and fall back to the Noise-encrypted TCP session; relay sessions always use TCP, because the relay forwards opaque bytes rather than offering a direct path.
 
-1. On the host Mac, remote access starts automatically when the local profile is created. ParsecPlus binds TCP 39200, advertises the host over Bonjour, and shows a direct address plus a single-use invite code. If **Network → Relay invite** is on and a relay address is set, the host also joins a relay room and shows its invite.
+1. On the host Mac, remote access starts automatically when the local profile is created. Nexus binds TCP 39200, advertises the host over Bonjour, and shows a direct address plus a single-use invite code. If **Network → Relay invite** is on and a relay address is set, the host also joins a relay room and shows its invite.
 2. On the client Mac, open **Connect directly** from Computers. The **Nearby** tab lists hosts advertising on the network; select one or enter an `address:port` manually. The **Relay invite** tab accepts the full invite from the host.
 3. Enter the pairing code and connect. The host sees an incoming-request card over any screen with the peer address and Hello identity (owner and device name), a 15-second countdown, and **Decline** / **Accept** actions. The client waits up to 20 seconds for the session greeting and shows a “waiting for approval” note after 6 seconds.
 4. On accept, the host completes transport negotiation, opens capture and the encoder, and sends its greeting on the selected transport. The client shows the host's encrypted video. The Host screen reports the connected peer plus live frame rate, actual bitrate, and the adaptive target.
@@ -88,7 +88,7 @@ A session connects two ParsecPlus apps over the local network or through a relay
 Direct sessions negotiate a UDP path before the host starts capture:
 
 1. After the Noise handshake and `Hello`, the client creates an SDP offer and sends it to the host as an encrypted control message. The host answers with its SDP, or explicitly declines WebRTC.
-2. Both sides apply the descriptions. The client's offer carries a receive-only HEVC m-line and the FlexFEC repair codec; the host attaches its video track before creating the answer, so the answer carries the sending m-line, the video SSRC, and the `FEC-FR` association. The client opens the `parsecplus-control` data channel (ordered, reliable) for input, telemetry, keyframe requests, and commands.
+2. Both sides apply the descriptions. The client's offer carries a receive-only HEVC m-line and the FlexFEC repair codec; the host attaches its video track before creating the answer, so the answer carries the sending m-line, the video SSRC, and the `FEC-FR` association. The client opens the `nexus-control` data channel (ordered, reliable) for input, telemetry, keyframe requests, and commands.
 3. Once the control channel opens, the client tells the host which transport it will use, and the host sends `Welcome` on that transport. If either side cannot establish WebRTC, the host sends a fallback control message and the session continues over the Noise-encrypted TCP channel.
 4. Video leaves as HEVC RTP packets ([RFC 7798](https://datatracker.ietf.org/doc/html/rfc7798)) on the media track, not as SCTP messages. The host's estimator consumes TWCC feedback, sizes the encoder, and the pacer meters packets through a bounded queue; NACK retransmits individual losses and FlexFEC-03 repairs a block of ten media packets with two repair packets. The client reassembles access units by extended RTP sequence number, waits 80 ms for a hole before declaring loss, and then emits only IRAP access units until a keyframe restores the reference chain.
 
@@ -109,7 +109,7 @@ The relay is a standalone service in `relay/`. It performs a short newline-delim
 Host requirements:
 
 - **Screen Recording** for capture. macOS prompts the first time hosting or live preview starts, and the app must be relaunched after the grant.
-- **Network reachability**: allow incoming connections for ParsecPlus in the macOS firewall. A direct internet session needs inbound TCP 39200 for signaling/fallback and inbound UDP on the configured media port (default 39201) forwarded to the host Mac; the client needs only outbound access. Relay sessions need the relay's TCP port (39210 by default), and TURN (optional) needs outbound UDP/TCP to the TURN server. macOS also asks for Local Network access the first time ParsecPlus advertises or browses Bonjour services.
+- **Network reachability**: allow incoming connections for Nexus in the macOS firewall. A direct internet session needs inbound TCP 39200 for signaling/fallback and inbound UDP on the configured media port (default 39201) forwarded to the host Mac; the client needs only outbound access. Relay sessions need the relay's TCP port (39210 by default), and TURN (optional) needs outbound UDP/TCP to the TURN server. macOS also asks for Local Network access the first time Nexus advertises or browses Bonjour services.
 - **Accessibility** plus the **Allow remote input** toggle for input forwarding. Input stays off by default, and clients are view-only until the host enables it.
 
 Up to eight direct viewers can be connected at once; relay rooms still serialize one viewer at a time because the relay forwards opaque bytes. Each direct connection is approved separately and gets its own session thread and encoder; the presence dock shows who is waiting, who is connected, and per-viewer access. The invite code stays valid for saved reconnect entries until you press **New code** to rotate it. Remote access is controlled by the Host toggle and is off at launch. Ending a session releases any held mouse buttons, disarms that viewer's input, and clears its consent.
@@ -135,8 +135,8 @@ Direct and relay sessions carry video and input. The RTP path implements delay-b
 
 The packaged build is ad-hoc signed, not notarized. If macOS refuses to open a transferred copy
 (“can’t be opened” or “damaged”), drag it to Applications, then run
-`xattr -dr com.apple.quarantine /Applications/ParsecPlus.app` and
-`codesign --force --deep --sign - /Applications/ParsecPlus.app`, or use
+`xattr -dr com.apple.quarantine /Applications/Nexus.app` and
+`codesign --force --deep --sign - /Applications/Nexus.app`, or use
 **System Settings → Privacy & Security → Open Anyway** after one failed launch attempt. Details in
 [TEST_GUIDE.md](TEST_GUIDE.md).
 
@@ -174,9 +174,9 @@ Run it on a machine both peers can reach, then enter its `host:port` under **Hos
 
 **Direct internet path.** Without an overlay, give both Macs the same STUN server under **Settings → Network → NAT traversal (STUN/TURN)**, forward **TCP 39200** and the host's **media UDP port** (default 39201) on the host's router, and use **Host → Network → Detect public address** to check the public IP and mapping. Then connect to `PUBLIC_IP:39200` with the pairing code. Empty STUN/TURN fields mean no third party is contacted, and the session falls back to the encrypted TCP stream when UDP cannot be established. The complete procedure, including TURN, relay, Tailscale fallbacks and troubleshooting, is in [TEST_GUIDE.md](TEST_GUIDE.md). If you only have one Mac, [LOCAL_TESTING.md](LOCAL_TESTING.md) shows how to run two app copies locally as host and client.
 
-The native app declares `NSLocalNetworkUsageDescription` and the `_parsecplus._tcp` Bonjour service in `src-tauri/Info.plist`. Approve the macOS Local Network prompt the first time ParsecPlus advertises or scans for hosts.
+The native app declares `NSLocalNetworkUsageDescription` and the `_nexus._tcp` Bonjour service in `src-tauri/Info.plist`. Approve the macOS Local Network prompt the first time Nexus advertises or scans for hosts.
 
-To use live preview or host a direct session, allow ParsecPlus under **System Settings → Privacy & Security → Screen Recording**, then relaunch the app. Capture starts only when you press **Start live preview** on the Host screen or turn hosting on. To forward remote input, also allow **Accessibility** and enable **Allow remote input**; ParsecPlus never grants these permissions for you.
+To use live preview or host a direct session, allow Nexus under **System Settings → Privacy & Security → Screen Recording**, then relaunch the app. Capture starts only when you press **Start live preview** on the Host screen or turn hosting on. To forward remote input, also allow **Accessibility** and enable **Allow remote input**; Nexus never grants these permissions for you.
 
 The native app icon set is generated from the original source at `src-tauri/icons/source/app-icon.svg` using the Tauri icon pipeline.
 
@@ -213,10 +213,10 @@ relay/
   src/main.rs      Relay CLI
 ```
 
-- **State** lives in a typed React context (`src/lib/store.tsx`) and is mirrored to `localStorage` under `parsecplus.data.v1`. The store exposes explicit actions for every product mutation.
+- **State** lives in a typed React context (`src/lib/store.tsx`) and is mirrored to `localStorage` under `nexus.data.v1`. The store exposes explicit actions for every product mutation.
 - **Native bridge** (`src/lib/native.ts`) probes for the Tauri runtime and falls back to deterministic browser behavior, so every screen is testable in a normal browser.
 - **Design system** is defined with CSS custom properties in `src/styles/tokens.css`; accent themes and computer color tones are token-driven. Inter Variable is bundled locally.
-- **UI primitives** are original and shared across screens: buttons, modal, popover, fields, toggle, segmented control, slider, toast, avatars, ring, sparkline, keyboard hints, and the ParsecPlus logo mark.
+- **UI primitives** are original and shared across screens: buttons, modal, popover, fields, toggle, segmented control, slider, toast, avatars, ring, sparkline, keyboard hints, and the Nexus logo mark.
 - **Reachability** (`src/reachability.rs`) advertises hosts over Bonjour while hosting, browses for nearby hosts on demand, and implements the relay join/pair client. The relay service is a separate crate so it can be deployed independently of the macOS app.
 - **WebRTC transport** (`src/webrtc_transport.rs`) wraps `webrtc-rs` behind the same synchronous session interface as the TCP channel. A process-wide Tokio bridge keeps the session threads synchronous while the peer-connection driver runs on webrtc's reactor pool. Video is an RTP track packetized by the HEVC payloader; control is one data channel. Signaling (SDP offer/answer, transport choice, fallback) is exchanged as control messages inside the Noise channel, so ICE candidates and DTLS fingerprints are authenticated by the pairing code.
 - **Join codes** (`src/network.rs`, `src/join_code.rs`) list usable interface addresses, mark the ones on a Tailscale tailnet, and pack a chosen address, the TCP port, and the current pairing code into a `PC1-…` string. The string is a single-use secret: the friend pastes it, the client unpacks it, and the ordinary Noise handshake plus host approval gate do the authorization.
@@ -293,7 +293,7 @@ permission profiles).
 
 
 - **Phase 2 — Capture, encode, input (implemented on macOS).** ScreenCaptureKit capture, VideoToolbox HEVC encoding, hardware cursor, local preview, capture/encode telemetry, and a guarded CGEvent input backend. H.264 and non-macOS hosts to follow.
-- **Phase 3 — Direct transport (implemented on macOS).** Authenticated, encrypted sessions between two ParsecPlus apps, hardware HEVC decode, a native Metal video surface at full stream resolution, real RTT/decode telemetry, and consent-gated input forwarding.
+- **Phase 3 — Direct transport (implemented on macOS).** Authenticated, encrypted sessions between two Nexus apps, hardware HEVC decode, a native Metal video surface at full stream resolution, real RTT/decode telemetry, and consent-gated input forwarding.
 - **Phase 3.5 — Reachability foundation (implemented).** Bonjour host presence and nearby discovery, plus a self-hostable rendezvous relay that only forwards ciphertext. Still to come: NAT traversal (STUN/TURN) and multi-relay failover.
 - **Phase 3.6 — Adaptive streaming (implemented).** Encrypted client health feedback, host-side encoder retargeting, blocking-write congestion response, and keyframe recovery for missing or undecodable frames.
 - **Phase 3.7 — WebRTC transport (implemented on macOS).** SDP negotiation inside the Noise channel, ICE/UDP with a control data channel, automatic TCP fallback, and relay sessions kept on TCP. Still to come: STUN/TURN and removal of the host's 60 fps ceiling.
@@ -307,8 +307,8 @@ permission profiles).
 
 ## Privacy
 
-This preview stores workspace data only in the browser or app WebView on your machine. It makes no analytics or telemetry requests. Direct sessions connect peer to peer; with the STUN/TURN fields empty, ICE gathers local interface candidates only and no third-party service is contacted. If you configure STUN or TURN, that server sees your IP and the ICE traffic (a public STUN server also sees the media port mapping); TURN relays DTLS/SRTP-encrypted media without being able to read it. A join code contains the current single-use pairing code and the host's LAN/overlay address, so share it only with the intended friend; it stops working after that session. Tailscale traffic is encrypted by the overlay before ParsecPlus's own Noise/DTLS layers. Relay sessions send ciphertext through the relay you configure yourself. That relay sees only a room token and encrypted bytes, never the pairing code, Noise keys, video, or input, and no data is sent to a ParsecPlus-operated service (there isn't one). Stream health feedback is sent only to the paired host inside the encrypted channel. While hosting, ParsecPlus publishes a Bonjour advertisement containing the host name, platform, version, and a stable non-secret device ID; it never advertises the pairing code. Removing local data resets the workspace; `Settings → Advanced` includes a local reset confirmation flow.
+This preview stores workspace data only in the browser or app WebView on your machine. It makes no analytics or telemetry requests. Direct sessions connect peer to peer; with the STUN/TURN fields empty, ICE gathers local interface candidates only and no third-party service is contacted. If you configure STUN or TURN, that server sees your IP and the ICE traffic (a public STUN server also sees the media port mapping); TURN relays DTLS/SRTP-encrypted media without being able to read it. A join code contains the current single-use pairing code and the host's LAN/overlay address, so share it only with the intended friend; it stops working after that session. Tailscale traffic is encrypted by the overlay before Nexus's own Noise/DTLS layers. Relay sessions send ciphertext through the relay you configure yourself. That relay sees only a room token and encrypted bytes, never the pairing code, Noise keys, video, or input, and no data is sent to a Nexus-operated service (there isn't one). Stream health feedback is sent only to the paired host inside the encrypted channel. While hosting, Nexus publishes a Bonjour advertisement containing the host name, platform, version, and a stable non-secret device ID; it never advertises the pairing code. Removing local data resets the workspace; `Settings → Advanced` includes a local reset confirmation flow.
 
 ## Disclaimer
 
-ParsecPlus is an independent clean-room project. It is not affiliated with, endorsed by, or derived from Parsec Technologies. All interface design and code are original.
+Nexus is an independent clean-room project. It is not affiliated with, endorsed by, or derived from Parsec Technologies. All interface design and code are original.

@@ -1,4 +1,4 @@
-import { Monitor, Radio, Settings } from "lucide-react";
+import { Monitor, Broadcast as Radio, GearSix as Settings } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import type { Screen, User } from "../lib/types";
 import { cn } from "../lib/utils";

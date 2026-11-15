@@ -257,11 +257,11 @@ impl VirtualGamepad {
         properties.add(&CFString::from("ReportDescriptor"), &descriptor.as_CFType());
         properties.add(
             &CFString::from("Product"),
-            &CFString::from(format!("ParsecPlus Virtual Gamepad {slot}").as_str()).as_CFType(),
+            &CFString::from(format!("Nexus Virtual Gamepad {slot}").as_str()).as_CFType(),
         );
         properties.add(
             &CFString::from("Manufacturer"),
-            &CFString::from("ParsecPlus").as_CFType(),
+            &CFString::from("Nexus").as_CFType(),
         );
         properties.add(
             &CFString::from("Transport"),

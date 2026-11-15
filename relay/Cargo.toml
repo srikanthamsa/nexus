@@ -1,8 +1,8 @@
 [package]
-name = "parsecplus-relay"
+name = "nexus-relay"
 version = "0.1.0"
 edition = "2021"
-description = "Self-hostable rendezvous relay for ParsecPlus direct sessions"
+description = "Self-hostable rendezvous relay for Nexus direct sessions"
 license = "MIT"
 
 [dependencies]

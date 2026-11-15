@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  AlertTriangle,
-  Check,
-  Clock3,
-  MonitorSmartphone,
-  ShieldCheck,
-  Wifi,
-} from "lucide-react";
+import { Warning as AlertTriangle, Check, Clock as Clock3, Devices as MonitorSmartphone, ShieldCheck, WifiHigh as Wifi } from "@phosphor-icons/react";
 import {
   getNativeHostStatus,
   isTauri,
@@ -181,7 +174,7 @@ export function HostConnectionLayer() {
               meta: `${viewer?.peer ?? "Remote device"} · ${
                 status.allowInput ? "Input allowed" : "View only"
               }`,
-              theme: "violet",
+              theme: "nexus",
             });
           }
         }
@@ -267,7 +260,7 @@ export function HostConnectionLayer() {
   const visible =
     Boolean(snapshot) && !closed && (phase !== "request" || Boolean(request));
   const connected = phase === "connected";
-  const title = snapshot?.owner || snapshot?.device || "A ParsecPlus device";
+  const title = snapshot?.owner || snapshot?.device || "A Nexus device";
 
   const cardRef = useRef<HTMLElement | null>(null);
 
@@ -414,7 +407,7 @@ export function HostConnectionLayer() {
                     />
                     <span className="host-gate__mark-icon">
                       {connected ? (
-                        <Check size={22} strokeWidth={2.4} />
+                        <Check size={22} weight="bold" />
                       ) : (
                         <MonitorSmartphone size={22} />
                       )}

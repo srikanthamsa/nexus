@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { cn } from "../lib/utils";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";

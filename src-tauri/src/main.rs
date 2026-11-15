@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    parsecplus_lib::run()
+    nexus_lib::run()
 }

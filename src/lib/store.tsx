@@ -14,16 +14,18 @@ import type {
   RecentConnection,
 } from "./types";
 
-const STORAGE_KEY = "parsecplus.data.v2";
-/** The v1 key held seeded demo workspaces; drop it so it can never resurface. */
-const LEGACY_STORAGE_KEY = "parsecplus.data.v1";
+const STORAGE_KEY = "nexus.data.v2";
+/** Older keys are read once for the rename, then removed. */
+const LEGACY_STORAGE_KEYS = ["parsecplus.data.v2", "parsecplus.data.v1", "nexus.data.v1"];
 const RECENT_LIMIT = 12;
 
 function loadData(): AppData {
   if (typeof window === "undefined") return seedData;
   try {
-    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(STORAGE_KEY) ??
+      LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean);
+    for (const key of LEGACY_STORAGE_KEYS) window.localStorage.removeItem(key);
     if (!raw) return seedData;
     const parsed = JSON.parse(raw) as Partial<AppData>;
     return {
@@ -145,7 +147,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const resetAll = () => {
     try {
       window.localStorage.removeItem(STORAGE_KEY);
-      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      for (const key of LEGACY_STORAGE_KEYS) window.localStorage.removeItem(key);
     } catch {
       // No-op: state is reset below regardless.
     }

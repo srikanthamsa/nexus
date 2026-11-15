@@ -204,7 +204,7 @@ export async function startNativeCapture(
   if (!isTauri()) {
     return {
       ok: false,
-      error: "Live capture is available in the ParsecPlus desktop app.",
+      error: "Live capture is available in the Nexus desktop app.",
     };
   }
   try {
@@ -320,7 +320,7 @@ export async function startNativeHost(input: {
   mediaPort?: number;
   gamepad?: boolean;
 }): Promise<NativeHostStatus | { error: string }> {
-  if (!isTauri()) return { error: "Direct hosting is available in the ParsecPlus desktop app." };
+  if (!isTauri()) return { error: "Direct hosting is available in the Nexus desktop app." };
   try {
     return await invoke<NativeHostStatus>("native_host_start", {
       options: input.options,
@@ -360,7 +360,7 @@ export async function rotateNativeHostCode(): Promise<{
   status?: NativeHostStatus;
   error?: string;
 }> {
-  if (!isTauri()) return { error: "Direct hosting is available in the ParsecPlus desktop app." };
+  if (!isTauri()) return { error: "Direct hosting is available in the Nexus desktop app." };
   try {
     const status = await invoke<NativeHostStatus>("native_host_rotate_code");
     return { status };
@@ -497,7 +497,7 @@ export async function connectNativeClient(input: {
   ice?: NativeIceSettings;
 }): Promise<NativeClientConnectResult> {
   if (!isTauri()) {
-    return { ok: false, error: "Direct sessions are available in the ParsecPlus desktop app." };
+    return { ok: false, error: "Direct sessions are available in the Nexus desktop app." };
   }
   try {
     const summary = await invoke<NativeClientSummary>("native_client_connect", {
