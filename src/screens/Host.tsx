@@ -781,7 +781,7 @@ export function HostScreen({
         <div className={cn("host-codes", hostRunning && "is-live")}>
           <div className="host-code">
             <div className="host-code__head">
-              <span className="host-code__label">Share code</span>
+              <span className="host-code__label">Connection code</span>
               <span className="mini-chip">
                 <ShieldCheck size={11} />
                 Reusable
