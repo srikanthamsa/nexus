@@ -16,7 +16,7 @@ import type {
 
 const STORAGE_KEY = "nexus.data.v2";
 /** Older keys are read once for the rename, then removed. */
-const LEGACY_STORAGE_KEYS = ["parsecplus.data.v2", "parsecplus.data.v1", "nexus.data.v1"];
+const LEGACY_STORAGE_KEYS = ["nexus.data.v1"];
 const RECENT_LIMIT = 12;
 
 function loadData(): AppData {
