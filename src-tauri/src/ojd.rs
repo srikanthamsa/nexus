@@ -196,65 +196,10 @@ impl OjdPad {
         })
     }
 
-    /// Publish a complete absolute frame. OJD treats omitted controls as neutral,
-    /// so every frame lists the full state.
+    /// Publish an absolute frame. OJD treats omitted controls as neutral, so the
+    /// frame always lists the current axes; empty button/d-pad arrays are omitted.
     pub fn send_state(&mut self, state: &GamepadState) -> Result<(), String> {
-        let state = state.normalized();
-        let mut buttons = Vec::new();
-        for (index, name) in [
-            (0usize, "South"),
-            (1, "East"),
-            (2, "West"),
-            (3, "North"),
-            (4, "LeftShoulder"),
-            (5, "RightShoulder"),
-            (8, "Back"),
-            (9, "Start"),
-            (10, "LeftStickClick"),
-            (11, "RightStickClick"),
-            (12, "DpadUp"),
-            (13, "DpadDown"),
-            (14, "DpadLeft"),
-            (15, "DpadRight"),
-            (16, "Guide"),
-        ] {
-            if state.buttons.get(index).copied().unwrap_or(0.0) >= 0.5 {
-                buttons.push(name);
-            }
-        }
-        let trigger = |button: usize, axis: usize| -> f64 {
-            state
-                .buttons
-                .get(button)
-                .copied()
-                .or_else(|| state.axes.get(axis).copied())
-                .unwrap_or(0.0)
-                .clamp(0.0, 1.0)
-        };
-        let axis = |index: usize| -> f64 {
-            state
-                .axes
-                .get(index)
-                .copied()
-                .unwrap_or(0.0)
-                .clamp(-1.0, 1.0)
-        };
-        write_json(
-            &self.writer,
-            &json!({
-                "apiVersion": API_VERSION,
-                "kind": "Frame",
-                "buttons": buttons,
-                "axes": {
-                    "LeftStickX": axis(0),
-                    "LeftStickY": axis(1),
-                    "RightStickX": axis(2),
-                    "RightStickY": axis(3),
-                    "LeftTrigger": trigger(6, 4),
-                    "RightTrigger": trigger(7, 5),
-                },
-            }),
-        )?;
+        write_json(&self.writer, &frame_message(state))?;
         self.last_sent = Instant::now();
         Ok(())
     }
@@ -272,6 +217,82 @@ impl OjdPad {
         self.last_sent = Instant::now();
         Ok(())
     }
+}
+
+/// Build the absolute frame OJD expects. D-pad directions belong in `dpad`,
+/// not `buttons`; OJD silently ignores them there. Stick Y is inverted relative
+/// to the W3C/Moonlight convention used by [`GamepadState`].
+fn frame_message(state: &GamepadState) -> Value {
+    let state = state.normalized();
+    let mut buttons = Vec::new();
+    for (index, name) in [
+        (0usize, "South"),
+        (1, "East"),
+        (2, "West"),
+        (3, "North"),
+        (4, "LeftShoulder"),
+        (5, "RightShoulder"),
+        (8, "Back"),
+        (9, "Start"),
+        (10, "LeftStickClick"),
+        (11, "RightStickClick"),
+        (16, "Guide"),
+    ] {
+        if state.buttons.get(index).copied().unwrap_or(0.0) >= 0.5 {
+            buttons.push(name);
+        }
+    }
+
+    let mut dpad = Vec::new();
+    for (index, name) in [
+        (12usize, "DpadUp"),
+        (13, "DpadDown"),
+        (14, "DpadLeft"),
+        (15, "DpadRight"),
+    ] {
+        if state.buttons.get(index).copied().unwrap_or(0.0) >= 0.5 {
+            dpad.push(name);
+        }
+    }
+
+    let trigger = |button: usize, axis: usize| -> f64 {
+        state
+            .buttons
+            .get(button)
+            .copied()
+            .or_else(|| state.axes.get(axis).copied())
+            .unwrap_or(0.0)
+            .clamp(0.0, 1.0)
+    };
+    let axis = |index: usize| -> f64 {
+        state
+            .axes
+            .get(index)
+            .copied()
+            .unwrap_or(0.0)
+            .clamp(-1.0, 1.0)
+    };
+
+    let mut frame = json!({
+        "apiVersion": API_VERSION,
+        "kind": "Frame",
+        "axes": {
+            "LeftStickX": axis(0),
+            // OJD's HID Y is positive for up; W3C Gamepad is positive down.
+            "LeftStickY": -axis(1),
+            "RightStickX": axis(2),
+            "RightStickY": -axis(3),
+            "LeftTrigger": trigger(6, 4),
+            "RightTrigger": trigger(7, 5),
+        },
+    });
+    if !buttons.is_empty() {
+        frame["buttons"] = json!(buttons);
+    }
+    if !dpad.is_empty() {
+        frame["dpad"] = json!(dpad);
+    }
+    frame
 }
 
 impl Drop for OjdPad {
@@ -414,6 +435,57 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(300));
         pad.keepalive_if_due()
             .expect("keepalive should be accepted");
+    }
+
+    fn state(buttons: &[usize], axes: &[f64; 4]) -> GamepadState {
+        let mut values = vec![0.0; 17];
+        for index in buttons {
+            values[*index] = 1.0;
+        }
+        GamepadState {
+            slot: 1,
+            name: "test".to_string(),
+            connected: true,
+            axes: axes.to_vec(),
+            buttons: values,
+        }
+    }
+
+    #[test]
+    fn dpad_uses_its_own_field() {
+        for (index, expected) in [
+            (12usize, "DpadUp"),
+            (13, "DpadDown"),
+            (14, "DpadLeft"),
+            (15, "DpadRight"),
+        ] {
+            let frame = frame_message(&state(&[index], &[0.0; 4]));
+            assert_eq!(frame["dpad"], json!([expected]));
+            assert!(frame.get("buttons").is_none(), "d-pad must not ride in buttons");
+        }
+    }
+
+    #[test]
+    fn pure_dpad_frame_has_no_buttons_key() {
+        let frame = frame_message(&state(&[12], &[0.0; 4]));
+        assert_eq!(frame["dpad"], json!(["DpadUp"]));
+        assert!(frame.get("buttons").is_none());
+    }
+
+    #[test]
+    fn stick_y_is_inverted_for_ojd() {
+        // W3C Gamepad: -1 is up and +1 is down. OJD's HID Y is the reverse.
+        let frame = frame_message(&state(&[], &[0.0, -1.0, 0.0, 1.0]));
+        assert_eq!(frame["axes"]["LeftStickY"], 1.0);
+        assert_eq!(frame["axes"]["RightStickY"], -1.0);
+    }
+
+    #[test]
+    fn neutral_frame_omits_button_and_dpad_arrays() {
+        let frame = frame_message(&state(&[], &[0.0; 4]));
+        assert!(frame.get("buttons").is_none());
+        assert!(frame.get("dpad").is_none());
+        assert!(frame.get("axes").is_some());
     }
 
     #[test]
