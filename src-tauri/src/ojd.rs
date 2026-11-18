@@ -489,6 +489,24 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires a running OpenJoystickDriver endpoint with a Control token"]
+    fn live_endpoint_accepts_dpad_and_stick_y() {
+        let config = discover().expect("OJD endpoint and token should be discoverable");
+        let mut pad = OjdPad::connect(&config, 2).expect("OJD should create a pad");
+        let mut buttons = vec![0.0; 17];
+        buttons[12] = 1.0;
+        let state = GamepadState {
+            slot: 2,
+            name: "dpad/y test".to_string(),
+            connected: true,
+            axes: vec![0.0, -1.0, 0.0, 1.0],
+            buttons,
+        };
+        pad.send_state(&state).expect("OJD should accept a d-pad frame");
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+
+    #[test]
     fn hmac_matches_rfc_vector() {
         // RFC 4231 test case 2.
         assert_eq!(
